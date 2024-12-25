@@ -1,0 +1,9 @@
+telemetria/
+│
+├── main.py  # Código principal que integra tudo
+├── mapa.py  # Código relacionado ao mapa
+├── graficos.py  # Código relacionado aos gráficos
+└── coordenadas.py  # Código para coordenadas GPS ou simulações
+
+Para utilizar baixar as bibliotecas:
+pip install streamlit pandas plotly trimesh pydeck numpy
