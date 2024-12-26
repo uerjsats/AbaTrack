@@ -1,3 +1,5 @@
 Teste foi feito utilizando a biblioteca streamlit que faz um web app local.
 
 No software foram utilizados dados fake para mostrar que essa biblioteca consegue fazer o que o software propoe, porém temos que estudar ela melhor.
+
+O que ele mostra até então: localização no mapa de acordo com as coordenadas, graficos de altitude, pressão e temperatura e modelo 3D girando conforme os valores de giro estabalecidos no código.
