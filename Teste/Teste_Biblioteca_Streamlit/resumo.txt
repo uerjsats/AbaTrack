@@ -1,9 +1,9 @@
-telemetria/
+software de telemetria em python utilizando a lib streamlit
 │
 ├── main.py  # Código principal que integra tudo
 ├── mapa.py  # Código relacionado ao mapa
 ├── graficos.py  # Código relacionado aos gráficos
-└── coordenadas.py  # Código para coordenadas GPS ou simulações
+└── coordenadas.py  # Código para coordenadas GPS
 
 Para utilizar baixar as bibliotecas:
 pip install streamlit pandas plotly trimesh pydeck numpy
