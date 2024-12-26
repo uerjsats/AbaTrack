@@ -48,7 +48,7 @@ class Satelite3D:
             ),
             title="Modelo 3D a partir de STL"
         )
-
+        return fig
 
 
 
