@@ -1,0 +1,12 @@
+Historico de Telemetria - 2025-02-06_15-56-07
+-------------------------------
+Temperatura: 7.0 C Tempo: 49.0s
+Temperatura: 73.0 C Tempo: 58.0s
+Temperatura: 30.0 C Tempo: 72.0s
+Temperatura: 44.0 C Tempo: 78.0s
+Temperatura: 23.0 C Tempo: 9.0s
+Temperatura: 40.0 C Tempo: 65.0s
+Temperatura: 92.0 C Tempo: 42.0s
+Temperatura: 87.0 C Tempo: 3.0s
+Temperatura: 27.0 C Tempo: 29.0s
+Temperatura: 40.0 C Tempo: 12.0s
