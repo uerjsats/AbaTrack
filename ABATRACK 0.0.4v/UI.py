@@ -3,7 +3,7 @@ import sys
 from datetime import datetime  
 import time  
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, 
-                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QFileDialog, QSpacerItem, QSizePolicy, QMessageBox, QCheckBox, QScrollArea)
+                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QFileDialog, QSpacerItem, QSizePolicy, QMessageBox, QCheckBox, QScrollArea, QStackedWidget)
 from PyQt6.QtCore import QTimer, QThread, pyqtSignal, Qt, QSettings
 from PyQt6.QtGui import QIcon, QPixmap
 import serial.tools.list_ports
@@ -50,26 +50,6 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(icon_path))
         self.resize(600, 700)  # Define o tamanho inicial da janela, mas permite redimensionamento
 
-        # Cria o layout para adicionar a imagem logo abaixo da barra superior
-        self.layoutImagem = QVBoxLayout()
-
-        # Cria o QLabel para a imagem
-        self.imagemTitulo = QLabel(self)
-        self.imagemTitulo.setScaledContents(True)
-        self.imagemTitulo.setFixedSize(179, 55)
-        pixmap = QPixmap(image_path)  # Substitua pelo caminho da sua imagem
-        self.imagemTitulo.setPixmap(pixmap)
-        self.imagemTitulo.setGraphicsEffect(QGraphicsDropShadowEffect())
-
-        # Layout para centralizar a imagem
-        self.layoutImagemCentral = QHBoxLayout()
-        self.layoutImagemCentral.addStretch()
-        self.layoutImagemCentral.addWidget(self.imagemTitulo)
-        self.layoutImagemCentral.addStretch()
-
-        # Adiciona a imagem ao layout
-        self.layoutImagem.addLayout(self.layoutImagemCentral)
-
         # Instâncias dos componentes da aplicação
         self.repositorio = RepositorioTelemetria()
         self.configs = ConfigsComunicacao(portaArduino="COM3", baudRate=9600)
@@ -81,6 +61,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         self.layout = QVBoxLayout(central_widget)
 
+        # Adiciona a imagem ao layout principal
+        self.layoutImagem = self.criarLayoutImagem(image_path)
+        self.layout.addLayout(self.layoutImagem)
+
+        # Layout horizontal para o QStackedWidget e os botões de navegação
+        self.layoutHorizontal = QHBoxLayout()
+
+        # Cria o QStackedWidget para gerenciar as diferentes telas
+        self.stackedWidget = QStackedWidget(self)
+
+        # Tela 1
+        self.tela1 = QWidget()
+        layoutTela1 = QVBoxLayout(self.tela1)
+
         # Grafico pra mostrar dados
         self.graficoDinamico = GraficoDinamico(self.repositorio.pacotesDados)
         self.graficoDinamico.setFixedSize(680, 400)
@@ -91,32 +85,89 @@ class MainWindow(QMainWindow):
         self.layoutGraficoCentral.addWidget(self.graficoDinamico)
         self.layoutGraficoCentral.addStretch()
 
-        self.layout.addLayout(self.layoutImagem)
-        self.layout.addLayout(self.layoutGraficoCentral)
+        layoutTela1.addLayout(self.layoutGraficoCentral)
+        self.stackedWidget.addWidget(self.tela1)
 
-        # Layout para centralizar os widgets
-        self.layoutCentralizado = QHBoxLayout()
-        self.layoutCentralizado.addStretch()
+        # Tela 2
+        self.tela2 = QWidget()
+        layoutTela2 = QVBoxLayout(self.tela2)
+        layoutTela2.addStretch()
+        self.stackedWidget.addWidget(self.tela2)
+
+        # Tela 3
+        self.tela3 = QWidget()
+        layoutTela3 = QVBoxLayout(self.tela3)
+        layoutTela3.addStretch()
+        self.stackedWidget.addWidget(self.tela3)
+
+        # Adiciona o QStackedWidget ao layout horizontal
+        self.layoutHorizontal.addWidget(self.stackedWidget)
+
+        # Layout para os botões de navegação
+        self.layoutBotoesNavegacao = QVBoxLayout()
+        self.layoutBotoesNavegacao.addStretch()
+
+        # Botão para Tela 1
+        self.botaoTela1 = QPushButton("1", self)
+        self.botaoTela1.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        self.botaoTela1.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
+        self.layoutBotoesNavegacao.addWidget(self.botaoTela1)
+
+        # Botão para Tela 2
+        self.botaoTela2 = QPushButton("2", self)
+        self.botaoTela2.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        self.botaoTela2.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.layoutBotoesNavegacao.addWidget(self.botaoTela2)
+
+        # Botão para Tela 3
+        self.botaoTela3 = QPushButton("3", self)
+        self.botaoTela3.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        self.botaoTela3.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
+        self.layoutBotoesNavegacao.addWidget(self.botaoTela3)
+
+        self.layoutBotoesNavegacao.addStretch()
+
+        # Adiciona o layout dos botões de navegação ao layout horizontal
+        self.layoutHorizontal.addLayout(self.layoutBotoesNavegacao)
+
+        # Adiciona o layout horizontal ao layout principal
+        self.layout.addLayout(self.layoutHorizontal)
+
+        # Layout horizontal para os botões de navegação e caixas de seleção
+        self.layoutInferior = QVBoxLayout()
+
+        # Layout horizontal para as caixas de seleção
+        self.layoutCaixasSelecao = QHBoxLayout()
+
+        # Adiciona um espaçador antes das caixas de seleção para centralizá-las
+        self.layoutCaixasSelecao.addStretch()
 
         # ComboBox pra seleção da porta
         self.comboPorta = QComboBox(self)
         self.comboPorta.addItems(self.listarPortas())
         self.comboPorta.currentTextChanged.connect(self.escolherPorta)
         self.comboPorta.setFixedSize(150, 25) 
-        self.layoutCentralizado.addWidget(self.comboPorta)
+        self.layoutCaixasSelecao.addWidget(self.comboPorta)
+
+        # Adiciona um espaçador entre as caixas de seleção
+        self.layoutCaixasSelecao.addSpacing(20)  # Ajuste o valor conforme necessário
 
         # ComboBox pra selecionar baud rate
         self.comboBaudRate = QComboBox(self)
         self.comboBaudRate.addItems(["9600", "115200"])
         self.comboBaudRate.currentTextChanged.connect(self.escolherBaudRate)
         self.comboBaudRate.setFixedSize(150, 25)  
-        self.layoutCentralizado.addWidget(self.comboBaudRate)
+        self.layoutCaixasSelecao.addWidget(self.comboBaudRate)
 
-        self.layoutCentralizado.addStretch()
-        self.layout.addLayout(self.layoutCentralizado)
+        # Adiciona um espaçador depois das caixas de seleção para centralizá-las
+        self.layoutCaixasSelecao.addStretch()
 
-        # Layout para centralizar os botões
+        self.layoutInferior.addLayout(self.layoutCaixasSelecao)
+
+        # Layout horizontal para centralizar os botões
         self.layoutBotoes = QHBoxLayout()
+
+        # Adiciona um espaçador antes dos botões para centralizá-los
         self.layoutBotoes.addStretch()
 
         # Botão pra conectar ao Arduino
@@ -125,11 +176,17 @@ class MainWindow(QMainWindow):
         self.botaoConectar.setFixedSize(150, 25)  
         self.layoutBotoes.addWidget(self.botaoConectar)
 
+        # Adiciona um espaçador entre os botões
+        self.layoutBotoes.addSpacing(20)  # Ajuste o valor conforme necessário
+
         # Botão pra desconectar do Arduino
         self.botaoDesconectar = QPushButton("Desconectar", self)
         self.botaoDesconectar.clicked.connect(self.pressionarDesconectar)
         self.botaoDesconectar.setFixedSize(150, 25)  
         self.layoutBotoes.addWidget(self.botaoDesconectar)
+
+        # Adiciona um espaçador entre os botões
+        self.layoutBotoes.addSpacing(20)  # Ajuste o valor conforme necessário
 
         # Botão pra salvar dados no TXT
         self.botaoSalvar = QPushButton("Salvar Dados", self)
@@ -137,14 +194,22 @@ class MainWindow(QMainWindow):
         self.botaoSalvar.setFixedSize(150, 25)  
         self.layoutBotoes.addWidget(self.botaoSalvar)
 
+        # Adiciona um espaçador entre os botões
+        self.layoutBotoes.addSpacing(20)  # Ajuste o valor conforme necessário
+
         # Botão pra salvar o gráfico em PNG
         self.botaoSalvarGrafico = QPushButton("Salvar Gráfico", self)
         self.botaoSalvarGrafico.clicked.connect(self.salvarGrafico)
         self.botaoSalvarGrafico.setFixedSize(150, 25)  
         self.layoutBotoes.addWidget(self.botaoSalvarGrafico)
 
+        # Adiciona um espaçador depois dos botões para centralizá-los
         self.layoutBotoes.addStretch()
-        self.layout.addLayout(self.layoutBotoes)
+
+        self.layoutInferior.addLayout(self.layoutBotoes)
+
+        # Adiciona o layout inferior ao layout principal
+        self.layout.addLayout(self.layoutInferior)
 
         # Aplicar estilo CSS aos botões
         self.aplicarEstilo()
@@ -159,6 +224,23 @@ class MainWindow(QMainWindow):
         self.resetarAvisos()  
 
         self.adaptador.erroDecodificacao.connect(lambda: self.mostrarAvisoErroBaud("Erro de decodificação", "Erro ao decodificar dados"))
+
+    def criarLayoutImagem(self, image_path):
+        layoutImagem = QVBoxLayout()
+        imagemTitulo = QLabel(self)
+        imagemTitulo.setScaledContents(True)
+        imagemTitulo.setFixedSize(179, 55)
+        pixmap = QPixmap(image_path)
+        imagemTitulo.setPixmap(pixmap)
+        imagemTitulo.setGraphicsEffect(QGraphicsDropShadowEffect())
+
+        layoutImagemCentral = QHBoxLayout()
+        layoutImagemCentral.addStretch()
+        layoutImagemCentral.addWidget(imagemTitulo)
+        layoutImagemCentral.addStretch()
+
+        layoutImagem.addLayout(layoutImagemCentral)
+        return layoutImagem
 
     def resetarAvisos(self):
         self.settings.setValue("mostrarAvisos", True)
