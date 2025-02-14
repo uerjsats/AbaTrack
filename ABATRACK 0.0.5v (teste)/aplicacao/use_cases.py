@@ -17,10 +17,16 @@ def processarPacoteDeDados(pacote):
 
 def adicionarPacoteRepositorio(pacote, repositorio: RepositorioTelemetria):
     repositorio.pacotesDados.append(pacote)
+    repositorio.quantidadedepacotedados += 1
 
 def filtraSubdado(listaSubdados, indiceSubdado, repositorio: RepositorioTelemetria):
-    for conjuntoDados in repositorio.pacotesDados:
-        listaSubdados.append(conjuntoDados[indiceSubdado])
+    # Limpa a lista para evitar acúmulo de dados anteriores
+    listaSubdados.clear()
+    for pacote in repositorio.pacotesDados:
+        if len(pacote) > indiceSubdado:
+            listaSubdados.append(pacote[indiceSubdado])
+        else:
+            print(f"Pacote sem índice {indiceSubdado}: {pacote}")
 
 def salvarDadosTXT(repositorio: RepositorioTelemetria):
     if not repositorio.pacotesDados:

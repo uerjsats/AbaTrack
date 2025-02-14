@@ -38,11 +38,6 @@ class GraficoDinamico(QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
-        # Timer para att o gráfico (cada 0.5s)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.atualizarGrafico)
-        self.timer.start(500)
-
     def atualizarGrafico(self, novo_dado=None):
         if novo_dado is not None:
             try:

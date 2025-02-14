@@ -15,7 +15,7 @@ from aplicacao.use_cases import *
 from dominio.entidades import *
 from integracao.adaptador_arduino import AdaptadorArduino
 from integracao.thread_leitor_serial import ThreadLeituraSerial
-from UI.graficos import GraficoDinamico
+from UI.graficosGenericos import GraficoDinamicoGenerico
 from UI.thread_leitor_repositorio import ThreadLeituraRepositorio
 
 class MainWindow(QMainWindow):
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         layoutTela1 = QVBoxLayout(self.tela1)
 
         # Grafico pra mostrar dados
-        self.graficoDinamico = GraficoDinamico(self.repositorio.pacotesDados)
+        self.graficoDinamico = GraficoDinamicoGenerico("Temperatura x Tempo", "Tempo (s)", "Temperatura (°C)", self.repositorio.dadosTemperatura, self.repositorio.tempo)  
         self.graficoDinamico.setFixedSize(680, 400)
 
         # Layout para centralizar o gráfico

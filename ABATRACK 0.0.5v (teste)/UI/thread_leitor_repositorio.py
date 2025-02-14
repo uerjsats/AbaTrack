@@ -5,7 +5,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 import time
 
 class ThreadLeituraRepositorio(QThread):
-    dadoLido = pyqtSignal(str)
+    dadoLido = pyqtSignal(list)
 
     def __init__(self, repositorio: RepositorioTelemetria):
         super().__init__()
@@ -18,7 +18,6 @@ class ThreadLeituraRepositorio(QThread):
                 dado = self.repositorioDados.pacotesDados[-1]
                 if dado:
                     self.dadoLido.emit(dado)
-                time.sleep(0.5)
             else:
                 print("Repositorio vazio")
             time.sleep(0.5)

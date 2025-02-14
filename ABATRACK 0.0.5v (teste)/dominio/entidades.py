@@ -1,6 +1,7 @@
 class RepositorioTelemetria:
     def __init__(self):
         self.pacotesDados = []
+        self.quantidadedepacotedados = 0
         self.dadosTemperatura = []
         self.tempo = []
 
