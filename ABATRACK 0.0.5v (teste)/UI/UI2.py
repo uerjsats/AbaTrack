@@ -40,9 +40,9 @@ class MainWindow(QMainWindow):
 
         # Logo Abasat :)
             # Pathing para as imgs
-        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        icon_path = os.path.join(base_path, "imgs/AbaTrack.ico")
-        image_path = os.path.join(base_path, "imgs/AbaTrack.png")
+        base_path = os.path.dirname(os.path.dirname(__file__))
+        icon_path = os.path.join(base_path, "imgs", "AbaTrack.ico")
+        image_path = os.path.join(base_path, "imgs", "AbaTrack.png")
 
             # Add imagens
         self.setWindowIcon(QIcon(icon_path))
