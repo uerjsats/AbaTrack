@@ -7,6 +7,7 @@ import time
 class ThreadPrincipal(QThread):
     ultimosSubdados = pyqtSignal(float, float)
     ultimosDadosBrutos = pyqtSignal(list)
+    numeroDePacotes = pyqtSignal(float)
 
     def __init__(self, adaptador: AdaptadorArduino):
         super().__init__()
@@ -23,11 +24,13 @@ class ThreadPrincipal(QThread):
                 adicionarPacoteRepositorio(processarPacoteDeDados(pacote), self.repositorio)
                 filtraSubdado(self.repositorio.dadosTemperatura, 0, self.repositorio)
                 filtraSubdado(self.repositorio.tempo, 1, self.repositorio)
+                filtraSubdado(self.repositorio.numerodepacotes, 2, self.repositorio)
 
             # Repositorio -> Grafico
             if self.repositorio.dadosTemperatura and self.repositorio.tempo:
                 self.ultimosSubdados.emit(self.repositorio.dadosTemperatura[-1], self.repositorio.tempo[-1])
                 self.ultimosDadosBrutos.emit(self.repositorio.pacotesDados[-1])
+                self.numeroDePacotes.emit(self.repositorio.numerodepacotes[-1])
             else:
                 print("Repositorio vazio")
             

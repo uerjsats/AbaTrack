@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
 
         # Instancias dos objetos
         self.repositorio = RepositorioTelemetria()
-        self.configs = ConfigsComunicacao(portaArduino="COM3", baudRate=9600)
+        self.configs = ConfigsComunicacao(portaArduino=None, baudRate=9600)
         self.adaptador = AdaptadorArduino(self.repositorio, self.configs)
         self.thread = None
 
@@ -36,12 +36,12 @@ class MainWindow(QMainWindow):
         self.layout = QVBoxLayout(central_widget)
 
         # Logo Abasat :)
-            # Pathing para as imgs
+        # Pathing para as imgs
         base_path = os.path.dirname(os.path.dirname(__file__))
         icon_path = os.path.join(base_path, "imgs", "AbaTrack.ico")
         image_path = os.path.join(base_path, "imgs", "AbaTrack.png")
 
-            # Add imagens
+        # Add imagens
         self.setWindowIcon(QIcon(icon_path))
         self.layoutImagem = self.criarLayoutImagem(image_path)
         self.layout.addLayout(self.layoutImagem)
@@ -73,6 +73,12 @@ class MainWindow(QMainWindow):
         self.tela2 = QWidget()
         layoutTela2 = QVBoxLayout(self.tela2)
         layoutTela2.addStretch()
+
+        # Label para mostrar número de pacotes
+        self.labelNumerodePacotes = QLabel()
+        self.labelNumerodePacotes.setText("Número de Pacotes: ")
+        layoutTela2.addWidget(self.labelNumerodePacotes)
+
         self.stackedWidget.addWidget(self.tela2)
 
         # Tela 3
@@ -210,6 +216,9 @@ class MainWindow(QMainWindow):
 
         self.adaptador.erroDecodificacao.connect(lambda: self.mostrarAvisoErroBaud("Erro de decodificação", "Erro ao decodificar dados"))
 
+        # Inicialize a porta Arduino com a porta selecionada na QComboBox
+        self.escolherPorta()
+
     def criarLayoutImagem(self, image_path):
         layoutImagem = QVBoxLayout()
         imagemTitulo = QLabel(self)
@@ -346,6 +355,11 @@ class MainWindow(QMainWindow):
 
     def atualizarLabelDadoBruto(self, ultimoPacoteDados):
             self.labelPacotesBrutos.setText("Pacotes recebidos: "+":".join(map(str, ultimoPacoteDados)))
+
+    def atualizarLabelNumeroPacotes(self,numeroDePacotes):
+            if self.repositorio.numerodepacotes:  
+                ultimo_pacote = self.repositorio.numerodepacotes[-1]
+                self.labelNumerodePacotes.setText("Número de Pacotes: "+ str(ultimo_pacote))
         
     def iniciarLeitura(self):
         if self.thread == None or not self.thread.isRunning():
@@ -353,6 +367,7 @@ class MainWindow(QMainWindow):
             
             self.thread.ultimosSubdados.connect(self.graficoDinamico.atualizarGrafico)
             self.thread.ultimosDadosBrutos.connect(self.atualizarLabelDadoBruto)
+            self.thread.numeroDePacotes.connect(self.atualizarLabelNumeroPacotes)
 
             self.thread.start()
 

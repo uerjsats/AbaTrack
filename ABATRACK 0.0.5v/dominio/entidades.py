@@ -3,6 +3,7 @@ class RepositorioTelemetria:
         self.pacotesDados = []
         self.dadosTemperatura = []
         self.tempo = []
+        self.numerodepacotes = []
 
     def __str__(self):
         if self.pacotesDados:
