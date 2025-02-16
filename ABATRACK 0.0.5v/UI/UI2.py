@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QWidget, 
-                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu)
+                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame)
 from PyQt6.QtCore import QTimer, QSettings, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QActionGroup
 import serial.tools.list_ports
@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("AbaTrack")
-        self.resize(600, 700)
+        self.resize(800, 700)
         self.setWindowOpacity(0.95)
 
         # Instancias dos objetos
@@ -64,28 +64,32 @@ class MainWindow(QMainWindow):
         self.tela1 = QWidget()
         layoutTela1 = QVBoxLayout(self.tela1)
 
-        # Grafico pra mostrar dados
-        self.graficoDinamico = GraficoDinamicoGenerico("Temperatura x Tempo", "Tempo (s)", "Temperatura (°C)", self.repositorio.dadosTemperatura, self.repositorio.tempo)  
-        self.graficoDinamico.setFixedSize(680, 400)
+        # Cria um layout horizontal para os gráficos ficarem lado a lado
+        layoutGraficos = QHBoxLayout()
+        layoutGraficos.addStretch()
 
-        # Layout para centralizar o gráfico
-        self.layoutGraficoCentral = QHBoxLayout()
-        self.layoutGraficoCentral.addStretch()
-        self.layoutGraficoCentral.addWidget(self.graficoDinamico)
-        self.layoutGraficoCentral.addStretch()
+        # Gráfico Temperatura x Tempo
+        self.graficoDinamico = GraficoDinamicoGenerico("Temperatura x Tempo", "Tempo (s)", "Temperatura (°C)", self.repositorio.dadosTemperatura, self.repositorio.tempo)
+        self.graficoDinamico.setFixedSize(500, 400)
+        # Ajusta as margens manualmente para não cortar os títulos dos eixos
+        self.graficoDinamico.figure.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+        layoutGraficos.addWidget(self.graficoDinamico)
 
-        layoutTela1.addLayout(self.layoutGraficoCentral)
+        # Gráfico Altitude x Pressão
+        self.graficoAltPressao = GraficoDinamicoGenerico("Altitude x Pressão", "Altitude", "Pressão", self.repositorio.altitude, self.repositorio.pressao)
+        self.graficoAltPressao.setFixedSize(500, 400)
+        self.graficoAltPressao.figure.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+        layoutGraficos.addWidget(self.graficoAltPressao)
+
+        layoutGraficos.addStretch()
+        layoutTela1.addLayout(layoutGraficos)
+
         self.stackedWidget.addWidget(self.tela1)
 
         # Tela 2
         self.tela2 = QWidget()
         layoutTela2 = QVBoxLayout(self.tela2)
         layoutTela2.addStretch()
-
-        # Label para mostrar número de pacotes
-        self.labelNumerodePacotes = QLabel()
-        self.labelNumerodePacotes.setText("Número de Pacotes: ")
-        layoutTela2.addWidget(self.labelNumerodePacotes)
 
         self.stackedWidget.addWidget(self.tela2)
 
@@ -128,16 +132,46 @@ class MainWindow(QMainWindow):
         # Adiciona o layout horizontal ao layout principal
         self.layout.addLayout(self.layoutHorizontal)
 
-        # Layout horizontal para os botões de navegação e caixas de seleção
+        # Layout inferior para os botões de navegação e caixas de seleção
         self.layoutInferior = QVBoxLayout()
+        self.layoutInferior.addStretch()  # Empurra o conteúdo para o fundo
 
-        # Label para mostrar os pacotes brutos
-        self.labelPacotesBrutos = QLabel()
-        self.labelPacotesBrutos.setText("Pacotes recebidos: ")
-        self.layoutInferior.addWidget(self.labelPacotesBrutos)
+        # Primeiro adiciona o frame estilizado dos dados do rádio
+        self.containerDadosdoRadio = QFrame()
+        self.containerDadosdoRadio.setStyleSheet("""
+            background-color: #173905;
+            border-radius: 10px;
+            color: white;
+            padding: 10px;
+        """)
+        self.containerDadosdoRadio.setFixedSize(200, 120)
+
+        # Adiciona sombra ao containerDadosdoRadio
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(10)
+        shadow_effect.setOffset(5, 5)
+        self.containerDadosdoRadio.setGraphicsEffect(shadow_effect)
+
+        layoutContainerRadio = QVBoxLayout(self.containerDadosdoRadio)
+
+        # Cria o QLabel para os dados do rádio
+        self.labelDadosdoRadio = QLabel("Número de Pacotes:\nRSSI:\nTamanho do Pacote:")
+        layoutContainerRadio.addWidget(self.labelDadosdoRadio)
+
+        # Adiciona margens ao layout
+        layoutContainerRadio.setContentsMargins(10, 10, 10, 10)
+
+        self.layoutInferior.addWidget(self.containerDadosdoRadio, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # Em seguida o label para os dados dos pacotes
+        self.labelPacotesBrutos = QLabel("Dados dos pacotes recebidos: ")
+        self.layoutInferior.addWidget(self.labelPacotesBrutos, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Adiciona o layout inferior ao layout principal
         self.layout.addLayout(self.layoutInferior)
+
+        # Adiciona margens ao layout inferior para afastar o containerDadosdoRadio da borda da janela
+        self.layoutInferior.setContentsMargins(20, 20, 20, 20)
 
         # Configurar o temporizador para atualizar as portas COM disponíveis
         self.timer = QTimer(self)
@@ -157,21 +191,25 @@ class MainWindow(QMainWindow):
     
     # Funções para atualizar a interface gráfica
     def atualizarLabelDadoBruto(self, ultimoPacoteDados):
-            self.labelPacotesBrutos.setText("Pacotes recebidos: "+":".join(map(str, ultimoPacoteDados)))
+            self.labelPacotesBrutos.setText("Dados dos pacotes recebidos: "+":".join(map(str, ultimoPacoteDados)))
 
-    def atualizarLabelNumeroPacotes(self,numeroDePacotes):
-            if self.repositorio.numerodepacotes:  
-                ultimo_pacote = self.repositorio.numerodepacotes[-1]
-                self.labelNumerodePacotes.setText("Número de Pacotes: "+ str(ultimo_pacote))
+    def atualizarLabelDadosdoRadio(self, numeroDePacotes):
+        if self.repositorio.numerodepacotes:  
+            ultimo_pacote = self.repositorio.numerodepacotes[-1]
+            rssi = self.repositorio.RSSI[-1]
+            tamanho_pacote = self.repositorio.tamanhopacote[-1]
+            self.labelDadosdoRadio.setText("Número de Pacotes: " + str(ultimo_pacote) + "\nRSSI: " + str(rssi) + "\nTamanho do Pacote: " + str(tamanho_pacote))
 
     # Funções para iniciar e parar a leitura dos dados   
     def iniciarLeitura(self):
-        if self.thread == None or not self.thread.isRunning():
+        if self.thread is None or not self.thread.isRunning():
             self.thread = ThreadPrincipal(self.adaptador)
             
             self.thread.ultimosSubdados.connect(self.graficoDinamico.atualizarGrafico)
+            self.thread.ultimosSubdadosAltitude.connect(self.graficoAltPressao.atualizarGrafico)
+            
             self.thread.ultimosDadosBrutos.connect(self.atualizarLabelDadoBruto)
-            self.thread.numeroDePacotes.connect(self.atualizarLabelNumeroPacotes)
+            self.thread.dadosdoRadio.connect(self.atualizarLabelDadosdoRadio)
 
             self.thread.start()
 
@@ -320,7 +358,7 @@ class MainWindow(QMainWindow):
         self.atualizarSubmenuBaudRate(submenuBaudRate)
 
     def mostrarSobre(self):
-        QMessageBox.about(self, "Sobre", "AbaTrack v0.0.5\nDesenvolvido pela equipe UERJ Sats.")
+        QMessageBox.about(self, "Sobre", "AbaTrack 0.0.5v\nDesenvolvido pela equipe UERJ Sats.")
 
     def adicionarTituloMenu(self):
         

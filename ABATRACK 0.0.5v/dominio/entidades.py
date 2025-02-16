@@ -3,7 +3,11 @@ class RepositorioTelemetria:
         self.pacotesDados = []
         self.dadosTemperatura = []
         self.tempo = []
+        self.pressao = []
+        self.altitude = []
         self.numerodepacotes = []
+        self.RSSI = []
+        self.tamanhopacote = []
 
     def __str__(self):
         if self.pacotesDados:

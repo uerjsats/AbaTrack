@@ -22,8 +22,8 @@ class GraficoDinamicoGenerico(QWidget):
         # Criando figuras e eixos do Matplotlib
         self.figure, self.ax = plt.subplots()
         self.ax.set_title(titulo, fontsize=14, fontweight='bold', color="#333333")
-        self.ax.set_xlabel(titulo_x, fontsize=10, fontweight='bold', color="#555555")
-        self.ax.set_ylabel(titulo_y, fontsize=10, fontweight='bold', color="#555555")
+        self.ax.set_xlabel(titulo_x, fontsize=9, fontweight='bold', color="#555555")
+        self.ax.set_ylabel(titulo_y, fontsize=9, fontweight='bold', color="#555555")
         self.ax.grid(True, linestyle="--", alpha=0.7)
         self.ax.set_facecolor("#f5f5f5")
         self.figure.patch.set_facecolor("#f5f5f5")
@@ -70,7 +70,8 @@ class GraficoDinamicoGenerico(QWidget):
 
                     margem = (y_max - y_min) * 0.2
                     self.ax.set_ylim(y_min - margem, y_max + margem)
-
+                
+                
                 self.ax.relim()
                 self.ax.autoscale_view()
                 self.canvas.draw()
