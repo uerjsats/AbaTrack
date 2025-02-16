@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         layoutGraficos.addWidget(self.graficoDinamico)
 
         # Gráfico Altitude x Pressão
-        self.graficoAltPressao = GraficoDinamicoGenerico("Altitude x Pressão", "Pressão (hPa)", "Altitude (m)", self.repositorio.pressao, self.repositorio.altitude)
+        self.graficoAltPressao = GraficoDinamicoGenerico("Pressão x Altitude", "Altitude (m)", "Pressão (hPa)", self.repositorio.altitude, self.repositorio.pressao)
         self.graficoAltPressao.setFixedSize(500, 400)
         self.graficoAltPressao.figure.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
         layoutGraficos.addWidget(self.graficoAltPressao)
