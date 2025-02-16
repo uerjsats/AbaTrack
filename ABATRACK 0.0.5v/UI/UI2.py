@@ -2,9 +2,9 @@ import os
 import sys
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QWidget, 
-                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget)
-from PyQt6.QtCore import QTimer, QSettings
-from PyQt6.QtGui import QIcon, QPixmap
+                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu)
+from PyQt6.QtCore import QTimer, QSettings, Qt
+from PyQt6.QtGui import QIcon, QPixmap, QActionGroup
 import serial.tools.list_ports
 
 # Adicione o diretório 'integracao' ao sys.path
@@ -30,6 +30,16 @@ class MainWindow(QMainWindow):
         self.adaptador = AdaptadorArduino(self.repositorio, self.configs)
         self.thread = None
 
+        # Adiciona a barra de menu
+        self.menuBar = self.menuBar()
+        self.criarMenu()
+
+        # Adiciona o título "AbaTrack" na barra de menu
+        self.adicionarTituloMenu()
+
+        # Aplica estilo à barra de menu
+        self.aplicarEstiloMenuBar()
+
         # Widget central
         central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
@@ -38,13 +48,11 @@ class MainWindow(QMainWindow):
         # Logo Abasat :)
         # Pathing para as imgs
         base_path = os.path.dirname(os.path.dirname(__file__))
-        icon_path = os.path.join(base_path, "imgs", "AbaTrack.ico")
-        image_path = os.path.join(base_path, "imgs", "AbaTrack.png")
+        self.icon_path = os.path.join(base_path, "imgs", "AbaTrack.ico")
 
         # Add imagens
-        self.setWindowIcon(QIcon(icon_path))
-        self.layoutImagem = self.criarLayoutImagem(image_path)
-        self.layout.addLayout(self.layoutImagem)
+        self.setWindowIcon(QIcon(self.icon_path))
+
 
         # Layout horizontal para o QStackedWidget e os botões de navegação
         self.layoutHorizontal = QHBoxLayout()
@@ -123,77 +131,6 @@ class MainWindow(QMainWindow):
         # Layout horizontal para os botões de navegação e caixas de seleção
         self.layoutInferior = QVBoxLayout()
 
-        # Layout horizontal para as caixas de seleção
-        self.layoutCaixasSelecao = QHBoxLayout()
-
-        # Adiciona um espaçador antes das caixas de seleção para centralizá-las
-        self.layoutCaixasSelecao.addStretch()
-
-        # ComboBox pra seleção da porta
-        self.comboPorta = QComboBox(self)
-        self.comboPorta.addItems(self.listarPortas())
-        self.comboPorta.currentTextChanged.connect(self.escolherPorta)
-        self.comboPorta.setFixedSize(150, 25) 
-        self.layoutCaixasSelecao.addWidget(self.comboPorta)
-
-        # Adiciona um espaçador entre as caixas de seleção
-        self.layoutCaixasSelecao.addSpacing(20)  # Ajuste o valor conforme necessário
-
-        # ComboBox pra selecionar baud rate
-        self.comboBaudRate = QComboBox(self)
-        self.comboBaudRate.addItems(["9600", "115200"])
-        self.comboBaudRate.currentTextChanged.connect(self.escolherBaudRate)
-        self.comboBaudRate.setFixedSize(150, 25)  
-        self.layoutCaixasSelecao.addWidget(self.comboBaudRate)
-
-        # Adiciona um espaçador depois das caixas de seleção para centralizá-las
-        self.layoutCaixasSelecao.addStretch()
-
-        self.layoutInferior.addLayout(self.layoutCaixasSelecao)
-
-        # Layout horizontal para centralizar os botões
-        self.layoutBotoes = QHBoxLayout()
-
-        # Adiciona um espaçador antes dos botões para centralizá-los
-        self.layoutBotoes.addStretch()
-
-        # Botão pra conectar ao Arduino
-        self.botaoConectar = QPushButton("Conectar", self)
-        self.botaoConectar.clicked.connect(self.pressionarConectar)
-        self.botaoConectar.setFixedSize(150, 25)  
-        self.layoutBotoes.addWidget(self.botaoConectar)
-
-        # Adiciona um espaçador entre os botões
-        self.layoutBotoes.addSpacing(20)  # Ajuste o valor conforme necessário
-
-        # Botão pra desconectar do Arduino
-        self.botaoDesconectar = QPushButton("Desconectar", self)
-        self.botaoDesconectar.clicked.connect(self.pressionarDesconectar)
-        self.botaoDesconectar.setFixedSize(150, 25)  
-        self.layoutBotoes.addWidget(self.botaoDesconectar)
-
-        # Adiciona um espaçador entre os botões
-        self.layoutBotoes.addSpacing(20)  # Ajuste o valor conforme necessário
-
-        # Botão pra salvar dados no TXT
-        self.botaoSalvar = QPushButton("Salvar Dados", self)
-        self.botaoSalvar.clicked.connect(self.salvarDados)
-        self.botaoSalvar.setFixedSize(150, 25)  
-        self.layoutBotoes.addWidget(self.botaoSalvar)
-
-        # Adiciona um espaçador entre os botões
-        self.layoutBotoes.addSpacing(20)  # Ajuste o valor conforme necessário
-
-        # Botão pra salvar o gráfico em PNG
-        self.botaoSalvarGrafico = QPushButton("Salvar Gráfico", self)
-        self.botaoSalvarGrafico.clicked.connect(self.salvarGrafico)
-        self.botaoSalvarGrafico.setFixedSize(150, 25)  
-        self.layoutBotoes.addWidget(self.botaoSalvarGrafico)
-
-        # Adiciona um espaçador depois dos botões para centralizá-los
-        self.layoutBotoes.addStretch()
-        self.layoutInferior.addLayout(self.layoutBotoes)
-
         # Label para mostrar os pacotes brutos
         self.labelPacotesBrutos = QLabel()
         self.labelPacotesBrutos.setText("Pacotes recebidos: ")
@@ -202,12 +139,9 @@ class MainWindow(QMainWindow):
         # Adiciona o layout inferior ao layout principal
         self.layout.addLayout(self.layoutInferior)
 
-        # Aplicar estilo CSS aos botões
-        self.aplicarEstilo()
-
         # Configurar o temporizador para atualizar as portas COM disponíveis
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.atualizarPortas)
+        self.timer.timeout.connect(lambda: self.atualizarSubmenuPorta(self.menuConfiguracoes.findChild(QMenu, "Porta")))  # Adiciona a atualização do submenu Porta
         self.timer.start(1000)  # Atualiza a cada 1 segundo
 
         # Configurações para armazenar preferências do usuário
@@ -216,143 +150,12 @@ class MainWindow(QMainWindow):
 
         self.adaptador.erroDecodificacao.connect(lambda: self.mostrarAvisoErroBaud("Erro de decodificação", "Erro ao decodificar dados"))
 
-        # Inicialize a porta Arduino com a porta selecionada na QComboBox
-        self.escolherPorta()
-
-    def criarLayoutImagem(self, image_path):
-        layoutImagem = QVBoxLayout()
-        imagemTitulo = QLabel(self)
-        imagemTitulo.setScaledContents(True)
-        imagemTitulo.setFixedSize(179, 55)
-        pixmap = QPixmap(image_path)
-        imagemTitulo.setPixmap(pixmap)
-        imagemTitulo.setGraphicsEffect(QGraphicsDropShadowEffect())
-
-        layoutImagemCentral = QHBoxLayout()
-        layoutImagemCentral.addStretch()
-        layoutImagemCentral.addWidget(imagemTitulo)
-        layoutImagemCentral.addStretch()
-
-        layoutImagem.addLayout(layoutImagemCentral)
-        return layoutImagem
-
-    def aplicarEstilo(self):
-        estilo = """
-        QPushButton {
-            background-color: #63A32E; /* Verde */
-            border: none;
-            color: white;
-            padding: 2px 10px;
-            text-align: center;
-            text-decoration: none;
-            font-size: 14px;
-            margin: 2px 2px;
-        }
-        QPushButton:hover {
-            background-color: white;
-            color: black;
-            border: 2px solid #4CAF50;
-        }
-        """
-        self.botaoConectar.setStyleSheet(estilo)
-        self.botaoDesconectar.setStyleSheet(estilo)
-        self.botaoSalvar.setStyleSheet(estilo)
-        self.botaoSalvarGrafico.setStyleSheet(estilo)
-    
-    def mostrarAvisoSalvarTxt(self, titulo, mensagem):
-        if self.settings.value("mostrarAvisosSalvartxt", True, type=bool):
-            aviso = QMessageBox()
-            aviso.setIcon(QMessageBox.Icon.Warning)
-            aviso.setWindowTitle(titulo)
-            aviso.setText(mensagem)
-            aviso.setWindowIcon(QIcon(os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "imgs/AbaTrack.ico")))
-
-            checkbox = QCheckBox("Não mostrar novamente")
-            aviso.setCheckBox(checkbox)
-
-            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
-                self.settings.setValue("mostrarAvisosSalvartxt", False)
-
-    def mostrarAvisoGrafico(self, titulo, mensagem):
-        if self.settings.value("mostrarAvisosGrafico", True, type=bool):
-            aviso = QMessageBox()
-            aviso.setIcon(QMessageBox.Icon.Warning)
-            aviso.setWindowTitle(titulo)
-            aviso.setText(mensagem)
-            aviso.setWindowIcon(QIcon(os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "imgs/AbaTrack.ico")))
-
-            checkbox = QCheckBox("Não mostrar novamente")
-            aviso.setCheckBox(checkbox)
-
-            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
-                self.settings.setValue("mostrarAvisosGrafico", False)
-    
-    def mostrarAvisoErroBaud(self, titulo, mensagem):
-        if self.settings.value("mostrarAvisosBaud", True, type=bool):
-            aviso = QMessageBox()
-            aviso.setIcon(QMessageBox.Icon.Warning)
-            aviso.setWindowTitle(titulo)
-            aviso.setText(mensagem)
-            aviso.setWindowIcon(QIcon(os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "imgs/AbaTrack.ico")))
-
-            checkbox = QCheckBox("Não mostrar novamente")
-            aviso.setCheckBox(checkbox)
-
-            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
-                self.settings.setValue("mostrarAvisosBaud", False)
-    
-    def mostrarAviso(self, titulo, mensagem):
-        if self.settings.value("mostrarAvisos", True, type=bool):
-            aviso = QMessageBox()
-            aviso.setIcon(QMessageBox.Icon.Warning)
-            aviso.setWindowTitle(titulo)
-            aviso.setText(mensagem)
-            aviso.setWindowIcon(QIcon(os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "imgs/AbaTrack.ico")))
-
-            checkbox = QCheckBox("Não mostrar novamente")
-            aviso.setCheckBox(checkbox)
-
-            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
-                self.settings.setValue("mostrarAvisos", False)
-
-    def mostrarAvisoSemCheckbox(self, titulo, mensagem):
-        aviso = QMessageBox()
-        aviso.setIcon(QMessageBox.Icon.Warning)
-        aviso.setWindowTitle(titulo)
-        aviso.setText(mensagem)
-        aviso.setWindowIcon(QIcon(os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "imgs/AbaTrack.ico")))
-        aviso.exec()
-    
-    def resetarAvisos(self):
-        self.settings.setValue("mostrarAvisos", True)
-        self.settings.setValue("mostrarAvisosGrafico", True)
-        self.settings.setValue("mostrarAvisosSalvartxt", True)
-        self.settings.setValue("mostrarAvisosBaud", True)
-
+    # Inicializa a lista de portas COM disponíveis
     def listarPortas(self):
         portas = serial.tools.list_ports.comports()
         return [porta.device for porta in portas]
     
-    def atualizarPortas(self):
-        portas_atuais = self.listarPortas()
-        portas_combo = [self.comboPorta.itemText(i) for i in range(self.comboPorta.count())]
-
-        if portas_atuais != portas_combo:
-            self.comboPorta.clear()
-            self.comboPorta.addItems(portas_atuais)
-    
-    def escolherPorta(self):
-        porta = self.comboPorta.currentText()
-        if porta:
-            self.configs.portaArduino = porta
-            print(f"Porta selecionada: {porta}")
-
-    def escolherBaudRate(self):
-        baud_rate = self.comboBaudRate.currentText()
-        if baud_rate.isdigit():
-            self.configs.baudRate = int(baud_rate)
-            print(f"Baud rate selecionado: {self.configs.baudRate}")
-
+    # Funções para atualizar a interface gráfica
     def atualizarLabelDadoBruto(self, ultimoPacoteDados):
             self.labelPacotesBrutos.setText("Pacotes recebidos: "+":".join(map(str, ultimoPacoteDados)))
 
@@ -360,7 +163,8 @@ class MainWindow(QMainWindow):
             if self.repositorio.numerodepacotes:  
                 ultimo_pacote = self.repositorio.numerodepacotes[-1]
                 self.labelNumerodePacotes.setText("Número de Pacotes: "+ str(ultimo_pacote))
-        
+
+    # Funções para iniciar e parar a leitura dos dados   
     def iniciarLeitura(self):
         if self.thread == None or not self.thread.isRunning():
             self.thread = ThreadPrincipal(self.adaptador)
@@ -371,11 +175,9 @@ class MainWindow(QMainWindow):
 
             self.thread.start()
 
+    # Funções para conectar e desconectar o Arduino
     def pressionarDesconectar(self):
         self.adaptador.desconectar()
-
-        self.botaoConectar.setEnabled(True)
-        self.botaoDesconectar.setEnabled(False)
 
         if self.thread != None:
             self.thread.stop()
@@ -388,16 +190,14 @@ class MainWindow(QMainWindow):
         try:
             self.adaptador.conectar()
 
-            self.botaoConectar.setEnabled(False)
-            self.botaoDesconectar.setEnabled(True)
-
             self.iniciarLeitura()
 
         except Exception as e:
             self.mostrarAviso("Erro ao conectar", str(e))
 
             self.pressionarDesconectar()
-    
+
+    # Funções para salvar os dados e o gráfico
     def salvarDados(self):
         salvarDadosTXT(self.repositorio)
         self.mostrarAviso("Aviso", "Dados Salvos.")
@@ -412,3 +212,230 @@ class MainWindow(QMainWindow):
             self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
         except Exception as e:
             self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
+
+    #Configurações Menu Bar
+    def aplicarEstiloMenuBar(self):
+        estilo_menu_bar = """
+        QMenuBar {
+            background-color: #63A32E; /* Verde */
+            color: white;
+            font-size: 13px; /* Aumenta o tamanho da fonte */
+            -webkit-text-stroke-width: 0.5px; /* Contorno preto */
+            -webkit-text-stroke-color: #000;
+        }
+        QMenuBar::item {
+            background-color: #63A32E; /* Verde */
+            color: white;
+            font-size: 16px; /* Aumenta o tamanho da fonte */
+            -webkit-text-stroke-width: 0.5px; /* Contorno preto */
+            -webkit-text-stroke-color: #000;
+            padding: 12px; /* Adiciona padding para centralizar o texto */
+            margin: 0px 4px; /* Adiciona margem para centralizar o texto */
+            height: 50%; /* Ajusta a altura dos itens para serem da altura da menuBar */
+            border-radius: 1; /* Borda quadrada */
+        }
+        QMenuBar::item:selected {
+            background-color: #4CAF50; /* Verde mais escuro */
+        }
+        """
+        self.menuBar.setStyleSheet(estilo_menu_bar)
+
+    def criarMenu(self):
+        # Cria o menu Arquivo
+        menuArquivo = self.menuBar.addMenu("Arquivo")
+
+        # Adiciona ações ao menu Arquivo
+        acaoSalvar = menuArquivo.addAction("Salvar Dados")
+        acaoSalvar.triggered.connect(self.salvarDados)
+
+        acaoSalvarGrafico = menuArquivo.addAction("Salvar Gráfico")
+        acaoSalvarGrafico.triggered.connect(self.salvarGrafico)
+
+        acaoSair = menuArquivo.addAction("Sair")
+        acaoSair.triggered.connect(self.close)
+
+        # Cria o menu Configurações
+        self.menuConfiguracoes = self.menuBar.addMenu("Configurações")
+
+        # Cria o submenu Porta
+        submenuPorta = self.menuConfiguracoes.addMenu("Porta")
+        submenuPorta.setObjectName("Porta")
+        self.atualizarSubmenuPorta(submenuPorta)
+
+        # Cria o submenu Baud Rate
+        submenuBaudRate = self.menuConfiguracoes.addMenu("Baud Rate")
+        submenuBaudRate.setObjectName("Baud Rate")
+        self.atualizarSubmenuBaudRate(submenuBaudRate)
+
+        # Adiciona ações ao menu Configurações
+        acaoConectar = self.menuConfiguracoes.addAction("Conectar")
+        acaoConectar.triggered.connect(self.pressionarConectar)
+
+        acaoDesconectar = self.menuConfiguracoes.addAction("Desconectar")
+        acaoDesconectar.triggered.connect(self.pressionarDesconectar)
+
+        # Cria o menu Ajuda
+        menuAjuda = self.menuBar.addMenu("Ajuda")
+
+        # Adiciona ações ao menu Ajuda
+        acaoSobre = menuAjuda.addAction("Sobre")
+        acaoSobre.triggered.connect(self.mostrarSobre)
+
+    def atualizarSubmenuPorta(self, submenuPorta):
+        if submenuPorta is not None:
+            submenuPorta.clear()
+            portas = self.listarPortas()
+            acaoGroupPorta = QActionGroup(self)
+            for porta in portas:
+                acaoPorta = submenuPorta.addAction(porta)
+                acaoPorta.setCheckable(True)
+                acaoPorta.setChecked(porta == self.configs.portaArduino)
+                acaoPorta.triggered.connect(lambda checked, p=porta: self.selecionarPorta(p))
+                acaoGroupPorta.addAction(acaoPorta)
+
+    def atualizarSubmenuBaudRate(self, submenuBaudRate):
+        if submenuBaudRate is not None:
+            submenuBaudRate.clear()
+            baud_rates = ["9600", "115200"]
+            acaoGroupBaudRate = QActionGroup(self)
+            for baud_rate in baud_rates:
+                acaoBaudRate = submenuBaudRate.addAction(baud_rate)
+                acaoBaudRate.setCheckable(True)
+                acaoBaudRate.setChecked(baud_rate == str(self.configs.baudRate))
+                acaoBaudRate.triggered.connect(lambda checked, b=baud_rate: self.selecionarBaudRate(b))
+                acaoGroupBaudRate.addAction(acaoBaudRate)
+
+    def selecionarPorta(self, porta):
+        self.configs.portaArduino = porta
+
+        print(f"Porta selecionada: {porta}")
+        submenuPorta = self.menuConfiguracoes.findChild(QMenu, "Porta")
+        self.atualizarSubmenuPorta(submenuPorta)
+
+    def selecionarBaudRate(self, baud_rate):
+        self.configs.baudRate = int(baud_rate)
+        
+        print(f"Baud rate selecionado: {baud_rate}")
+        submenuBaudRate = self.menuConfiguracoes.findChild(QMenu, "Baud Rate")
+        self.atualizarSubmenuBaudRate(submenuBaudRate)
+
+    def mostrarSobre(self):
+        QMessageBox.about(self, "Sobre", "AbaTrack v0.0.5\nDesenvolvido pela equipe UERJ Sats.")
+
+    def adicionarTituloMenu(self):
+        
+        # Cria o QLabel para o título
+        titulo = QLabel("AbaTrack", self)
+        estilo_titulo = """
+        QLabel {
+            color: #FFF;
+            text-align: center;
+            text-shadow: 2px 2px 15px rgba(0, 0, 0, 0.85);
+            -webkit-text-stroke-width: 1px;
+            -webkit-text-stroke-color: #000;
+            font-family: "Jaini Purva";
+            font-size: 18px;
+            font-style: normal;
+            font-weight: 400;
+            line-height: normal;
+            margin-left: 20px; /* Adiciona margem à esquerda para mover o título para a direita */
+        }
+        """
+        titulo.setStyleSheet(estilo_titulo)
+
+        # Carrega a imagem
+        base_path = os.path.dirname(os.path.dirname(__file__))
+        image_path = os.path.join(base_path, "imgs", "abasat.png")
+        imagem = QLabel(self)
+        pixmap = QPixmap(image_path)
+
+        # Redimensiona a imagem para o tamanho do texto
+        pixmap = pixmap.scaledToHeight(18, Qt.TransformationMode.SmoothTransformation)
+        imagem.setPixmap(pixmap)
+
+        # Cria um layout horizontal para alinhar o título e a imagem
+        layout = QHBoxLayout()
+        layout.addWidget(titulo)
+        layout.addWidget(imagem)
+        layout.addStretch()
+
+        # Cria um widget para conter o layout
+        widget = QWidget(self)
+        widget.setLayout(layout)
+
+        # Adiciona o widget à barra de menu
+        self.menuBar.setCornerWidget(widget, Qt.Corner.TopLeftCorner)
+
+    def mostrarAvisoSalvarTxt(self, titulo, mensagem):
+        if self.settings.value("mostrarAvisosSalvartxt", True, type=bool):
+            aviso = QMessageBox()
+            aviso.setIcon(QMessageBox.Icon.Warning)
+            aviso.setWindowTitle(titulo)
+            aviso.setText(mensagem)
+            aviso.setWindowIcon(QIcon(self.icon_path))
+
+            checkbox = QCheckBox("Não mostrar novamente")
+            aviso.setCheckBox(checkbox)
+
+            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
+                self.settings.setValue("mostrarAvisosSalvartxt", False)
+
+    def mostrarAvisoGrafico(self, titulo, mensagem):
+        if self.settings.value("mostrarAvisosGrafico", True, type=bool):
+            aviso = QMessageBox()
+            aviso.setIcon(QMessageBox.Icon.Warning)
+            aviso.setWindowTitle(titulo)
+            aviso.setText(mensagem)
+            aviso.setWindowIcon(QIcon(self.icon_path))
+
+            checkbox = QCheckBox("Não mostrar novamente")
+            aviso.setCheckBox(checkbox)
+
+            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
+                self.settings.setValue("mostrarAvisosGrafico", False)
+
+    # Janelas de Aviso
+    
+    def mostrarAvisoErroBaud(self, titulo, mensagem):
+        aviso = QMessageBox(self)
+        aviso.setWindowTitle(titulo)
+        aviso.setText(mensagem)
+        aviso.setIcon(QMessageBox.Icon.Warning)
+        aviso.setWindowIcon(QIcon(self.icon_path))
+        aviso.exec()
+    
+    def mostrarAviso(self, titulo, mensagem):
+        if self.settings.value("mostrarAvisos", True, type=bool):
+            aviso = QMessageBox()
+            aviso.setIcon(QMessageBox.Icon.Warning)
+            aviso.setWindowTitle(titulo)
+            aviso.setText(mensagem)
+            aviso.setWindowIcon(QIcon(self.icon_path))
+
+            checkbox = QCheckBox("Não mostrar novamente")
+            aviso.setCheckBox(checkbox)
+
+            if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
+                self.settings.setValue("mostrarAvisos", False)
+
+    def mostrarAvisoSemCheckbox(self, titulo, mensagem):
+        aviso = QMessageBox()
+        aviso.setIcon(QMessageBox.Icon.Warning)
+        aviso.setWindowTitle(titulo)
+        aviso.setText(mensagem)
+        aviso.setWindowIcon(QIcon(self.icon_path))
+        aviso.exec()
+
+    def mostrarAvisoDesconectar(self):
+        aviso = QMessageBox(self)
+        aviso.setWindowTitle("Desconectado")
+        aviso.setText("O dispositivo foi desconectado com sucesso.")
+        aviso.setIcon(QMessageBox.Icon.Information)
+        aviso.setWindowIcon(QIcon(self.icon_path))
+        aviso.exec()
+
+    def resetarAvisos(self):
+        self.settings.setValue("mostrarAvisos", True)
+        self.settings.setValue("mostrarAvisosGrafico", True)
+        self.settings.setValue("mostrarAvisosSalvartxt", True)
+        self.settings.setValue("mostrarAvisosBaud", True)
