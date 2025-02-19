@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QWidget, 
-                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame)
+                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame, QSpacerItem, QSizePolicy)
 from PyQt6.QtCore import QTimer, QSettings, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QActionGroup
 import serial.tools.list_ports
@@ -58,6 +58,37 @@ class MainWindow(QMainWindow):
         # Layout horizontal para o QStackedWidget e os botões de navegação
         self.layoutHorizontal = QHBoxLayout()
 
+        # Layout para os botões de navegação
+        self.layoutBotoesNavegacao = QHBoxLayout()
+        self.layoutBotoesNavegacao.addStretch(50)
+
+        # Botão para Tela 1
+        self.botaoTela1 = QPushButton("", self)
+        self.botaoTela1.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        icon_path_tela1 = os.path.join(base_path, "imgs", "icon_tela1.png")  # Caminho para a imagem PNG
+        self.botaoTela1.setIcon(QIcon(icon_path_tela1))  
+        self.botaoTela1.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
+        self.layoutBotoesNavegacao.addWidget(self.botaoTela1)
+
+        # Botão para Tela 2
+        self.botaoTela2 = QPushButton("", self)
+        self.botaoTela2.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        icon_path_tela2 = os.path.join(base_path, "imgs", "icon_tela2.png")  # Caminho para a imagem PNG
+        self.botaoTela2.setIcon(QIcon(icon_path_tela2))  
+        self.botaoTela2.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
+        self.layoutBotoesNavegacao.addWidget(self.botaoTela2)
+
+        # Botão para Tela 3
+        self.botaoTela3 = QPushButton("", self)
+        self.botaoTela3.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        icon_path_tela3 = os.path.join(base_path, "imgs", "icon_tela3.png")  # Caminho para a imagem PNG
+        self.botaoTela3.setIcon(QIcon(icon_path_tela3)) 
+        self.botaoTela3.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
+        self.layoutBotoesNavegacao.addWidget(self.botaoTela3)
+
+        # Adiciona o layout dos botões de navegação ao layout principal
+        self.layout.addLayout(self.layoutBotoesNavegacao)
+
         # Cria o QStackedWidget para gerenciar as diferentes telas
         self.stackedWidget = QStackedWidget(self)
 
@@ -70,33 +101,42 @@ class MainWindow(QMainWindow):
 
         # Gráfico Temperatura x Tempo
         self.graficoDinamico = GraficoDinamicoGenerico("Temperatura (°C) x Tempo (s)", "Tempo (s)", "Temperatura (°C)", self.repositorio.tempo, self.repositorio.dadosTemperatura)
-        self.graficoDinamico.setFixedSize(500, 300)
+        self.graficoDinamico.setFixedSize(400, 300)
         layoutGraficos.addWidget(self.graficoDinamico)
 
         # Gráfico Pressão x Tempo
         self.graficoPressaoTemp = GraficoDinamicoGenerico("Pressão (Pa) x Tempo (s)", "Tempo (s)", "Pressão (hPa)", self.repositorio.tempo, self.repositorio.pressao)
-        self.graficoPressaoTemp.setFixedSize(500, 300)
+        self.graficoPressaoTemp.setFixedSize(400, 300)
         layoutGraficos.addWidget(self.graficoPressaoTemp)
-
 
         # Gráfico Altitude x Tempo
         self.graficoAltTemp = GraficoDinamicoGenerico("Altitude (m) x Tempo (s)", "Tempo (s)", "Altitude (m)", self.repositorio.tempo1, self.repositorio.altitude)
-        self.graficoAltTemp.setFixedSize(500, 300)
+        self.graficoAltTemp.setFixedSize(400, 300)
         layoutGraficos.addWidget(self.graficoAltTemp)
 
-        layoutTela1.addLayout(layoutGraficos)
+        # Cria um widget para encapsular o layout de gráficos
+        widgetGraficos = QWidget()
+        widgetGraficos.setLayout(layoutGraficos)
+
+        # Adiciona um QSpacerItem antes do widget de gráficos para centralizá-lo
+        layoutTela1.addSpacerItem(QSpacerItem(0, 90, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+
+        # Adiciona o widget de gráficos ao layout
+        layoutTela1.addWidget(widgetGraficos)
+
+        # Adiciona um QSpacerItem depois do widget de gráficos para centralizá-lo
+        layoutTela1.addSpacerItem(QSpacerItem(0, 90, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
         self.stackedWidget.addWidget(self.tela1)
 
         # Tela 2
         self.tela2 = QWidget()
         layoutTela2 = QVBoxLayout(self.tela2)
-        layoutTela2.addStretch()
 
         # Cria o container GPS
         self.containerGPS = QFrame()
         self.containerGPS.setStyleSheet("""
-            background-color: #5C3B1E;
+            background-color: #A34B2E;
             border-radius: 10px;
             color: white;
             padding: 10px;
@@ -117,7 +157,8 @@ class MainWindow(QMainWindow):
         layoutContainerGPS.addWidget(self.labelDadosGPS)
 
         # Adiciona margens ao layout
-        layoutContainerGPS.setContentsMargins(10, 10, 10, 10)
+        layoutTela2.setContentsMargins(100, 100, 100, 100)
+
 
         layoutTela2.addWidget(self.containerGPS, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -131,33 +172,6 @@ class MainWindow(QMainWindow):
 
         # Adiciona o QStackedWidget ao layout horizontal
         self.layoutHorizontal.addWidget(self.stackedWidget)
-
-        # Layout para os botões de navegação
-        self.layoutBotoesNavegacao = QVBoxLayout()
-        self.layoutBotoesNavegacao.addStretch(50)
-
-        # Botão para Tela 1
-        self.botaoTela1 = QPushButton("1", self)
-        self.botaoTela1.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
-        self.botaoTela1.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
-        self.layoutBotoesNavegacao.addWidget(self.botaoTela1)
-
-        # Botão para Tela 2
-        self.botaoTela2 = QPushButton("2", self)
-        self.botaoTela2.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
-        self.botaoTela2.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
-        self.layoutBotoesNavegacao.addWidget(self.botaoTela2)
-
-        # Botão para Tela 3
-        self.botaoTela3 = QPushButton("3", self)
-        self.botaoTela3.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
-        self.botaoTela3.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
-        self.layoutBotoesNavegacao.addWidget(self.botaoTela3)
-
-        self.layoutBotoesNavegacao.addStretch()
-
-        # Adiciona o layout dos botões de navegação ao layout horizontal
-        self.layoutHorizontal.addLayout(self.layoutBotoesNavegacao)
 
         # Adiciona o layout horizontal ao layout principal
         self.layout.addLayout(self.layoutHorizontal)
@@ -195,7 +209,10 @@ class MainWindow(QMainWindow):
 
         # Em seguida o label para os dados dos pacotes
         self.labelPacotesBrutos = QLabel("Dados dos pacotes recebidos: ")
-        self.layoutInferior.addWidget(self.labelPacotesBrutos, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        # Layout horizontal para o label dos pacotes
+        self.layoutBotoesEPacotes = QHBoxLayout()
+        self.layoutBotoesEPacotes.addWidget(self.labelPacotesBrutos, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Adiciona o layout inferior ao layout principal
         self.layout.addLayout(self.layoutInferior)
