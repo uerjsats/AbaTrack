@@ -10,6 +10,7 @@ class ThreadPrincipal(QThread):
     ultimosSubdadosPressTemp = pyqtSignal(float, float)
     ultimosSubdadosAltTemp = pyqtSignal(float, float)
     dadosdoRadio = pyqtSignal(float, float, float)
+    pacoteDadosGPS = pyqtSignal(float,float,float)
 
     def __init__(self, adaptador: AdaptadorArduino):
         super().__init__()
@@ -33,6 +34,9 @@ class ThreadPrincipal(QThread):
                 filtraSubdado(self.repositorio.numerodepacotes, 4, self.repositorio)
                 filtraSubdado(self.repositorio.RSSI, 5, self.repositorio)
                 filtraSubdado(self.repositorio.tamanhopacote, 6, self.repositorio)
+                filtraSubdado(self.repositorio.latitude, 7, self.repositorio)
+                filtraSubdado(self.repositorio.longitude, 8, self.repositorio)
+                filtraSubdado(self.repositorio.sats, 9, self.repositorio)        
 
                 print(self.repositorio.pacotesDados)
                 print(self.repositorio.dadosTemperatura)
@@ -51,6 +55,7 @@ class ThreadPrincipal(QThread):
                 self.ultimosSubdadosPressTemp.emit(self.repositorio.tempo[-1], self.repositorio.pressao[-1])
                 self.ultimosSubdadosAltTemp.emit(self.repositorio.tempo[-1], self.repositorio.altitude[-1])
                 self.dadosdoRadio.emit(self.repositorio.numerodepacotes[-1], self.repositorio.RSSI[-1], self.repositorio.tamanhopacote[-1])
+                self.pacoteDadosGPS.emit(self.repositorio.latitude[-1], self.repositorio.longitude[-1], self.repositorio.sats[-1])
     
             else:
                 print("Repositorio vazio")

@@ -9,6 +9,9 @@ class RepositorioTelemetria:
         self.numerodepacotes = []
         self.RSSI = []
         self.tamanhopacote = []
+        self.latitude = []
+        self.longitude = []
+        self.sats = []
 
     def __str__(self):
         if self.pacotesDados:

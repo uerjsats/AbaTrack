@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
 
         # Widget central
         central_widget = QWidget(self)
+        central_widget.setStyleSheet("background-color: #1C1C1C;")  # Define a cor de fundo
         self.setCentralWidget(central_widget)
         self.layout = QVBoxLayout(central_widget)
 
@@ -66,26 +67,21 @@ class MainWindow(QMainWindow):
 
         # Cria um layout horizontal para os gráficos ficarem lado a lado
         layoutGraficos = QHBoxLayout()
-        layoutGraficos.addStretch()
 
         # Gráfico Temperatura x Tempo
-        self.graficoDinamico = GraficoDinamicoGenerico("Temperatura x Tempo", "Tempo (s)", "Temperatura (°C)", self.repositorio.tempo, self.repositorio.dadosTemperatura)
-        self.graficoDinamico.setFixedSize(400, 300)
-        self.graficoDinamico.figure.subplots_adjust(left=0.16, right=0.95, top=0.9, bottom=0.12)
+        self.graficoDinamico = GraficoDinamicoGenerico("Temperatura (°C) x Tempo (s)", "Tempo (s)", "Temperatura (°C)", self.repositorio.tempo, self.repositorio.dadosTemperatura)
+        self.graficoDinamico.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoDinamico)
 
         # Gráfico Pressão x Tempo
-        self.graficoAltPressao = GraficoDinamicoGenerico("Pressão x Tempo", "Tempo (s)", "Pressão (hPa)", self.repositorio.tempo, self.repositorio.pressao)
-        self.graficoAltPressao.setFixedSize(400, 300)
-        self.graficoAltPressao.figure.subplots_adjust(left=0.17, right=0.95, top=0.9, bottom=0.12)
-        layoutGraficos.addWidget(self.graficoAltPressao)
+        self.graficoPressaoTemp = GraficoDinamicoGenerico("Pressão (Pa) x Tempo (s)", "Tempo (s)", "Pressão (hPa)", self.repositorio.tempo, self.repositorio.pressao)
+        self.graficoPressaoTemp.setFixedSize(500, 300)
+        layoutGraficos.addWidget(self.graficoPressaoTemp)
 
-        layoutGraficos.addStretch()
 
         # Gráfico Altitude x Tempo
-        self.graficoAltTemp = GraficoDinamicoGenerico("Altitude x Tempo", "Tempo (s)", "Altitude (m)", self.repositorio.tempo1, self.repositorio.altitude)
-        self.graficoAltTemp.setFixedSize(400, 300)
-        self.graficoAltTemp.figure.subplots_adjust(left=0.17, right=0.95, top=0.9, bottom=0.12)
+        self.graficoAltTemp = GraficoDinamicoGenerico("Altitude (m) x Tempo (s)", "Tempo (s)", "Altitude (m)", self.repositorio.tempo1, self.repositorio.altitude)
+        self.graficoAltTemp.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoAltTemp)
 
         layoutTela1.addLayout(layoutGraficos)
@@ -96,6 +92,34 @@ class MainWindow(QMainWindow):
         self.tela2 = QWidget()
         layoutTela2 = QVBoxLayout(self.tela2)
         layoutTela2.addStretch()
+
+        # Cria o container GPS
+        self.containerGPS = QFrame()
+        self.containerGPS.setStyleSheet("""
+            background-color: #5C3B1E;
+            border-radius: 10px;
+            color: white;
+            padding: 10px;
+        """)
+        self.containerGPS.setFixedSize(400, 200)
+
+        # Adiciona sombra ao containerGPS
+        shadow_effect_gps = QGraphicsDropShadowEffect()
+        shadow_effect_gps.setBlurRadius(10)
+        shadow_effect_gps.setOffset(5, 5)
+        self.containerGPS.setGraphicsEffect(shadow_effect_gps)
+
+        layoutContainerGPS = QVBoxLayout(self.containerGPS)
+
+        # Cria o QLabel para os dados do GPS
+        self.labelDadosGPS = QLabel("Latitude:\n\nLongitude:\n\nSats:")
+        self.labelDadosGPS.setStyleSheet("font-size: 13px;")  # Aumenta a fonte para 16px
+        layoutContainerGPS.addWidget(self.labelDadosGPS)
+
+        # Adiciona margens ao layout
+        layoutContainerGPS.setContentsMargins(10, 10, 10, 10)
+
+        layoutTela2.addWidget(self.containerGPS, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.stackedWidget.addWidget(self.tela2)
 
@@ -110,7 +134,7 @@ class MainWindow(QMainWindow):
 
         # Layout para os botões de navegação
         self.layoutBotoesNavegacao = QVBoxLayout()
-        self.layoutBotoesNavegacao.addStretch()
+        self.layoutBotoesNavegacao.addStretch(50)
 
         # Botão para Tela 1
         self.botaoTela1 = QPushButton("1", self)
@@ -150,7 +174,7 @@ class MainWindow(QMainWindow):
             color: white;
             padding: 10px;
         """)
-        self.containerDadosdoRadio.setFixedSize(200, 120)
+        self.containerDadosdoRadio.setFixedSize(250, 120)
 
         # Adiciona sombra ao containerDadosdoRadio
         shadow_effect = QGraphicsDropShadowEffect()
@@ -204,7 +228,13 @@ class MainWindow(QMainWindow):
             ultimo_pacote = self.repositorio.numerodepacotes[-1]
             rssi = self.repositorio.RSSI[-1]
             tamanho_pacote = self.repositorio.tamanhopacote[-1]
-            self.labelDadosdoRadio.setText("Número de Pacotes: " + str(ultimo_pacote) + "\nRSSI: " + str(rssi) + "\nTamanho do Pacote: " + str(tamanho_pacote))
+            self.labelDadosdoRadio.setText("Número de Pacotes: " + str(ultimo_pacote) + "\nRSSI: " + str(rssi) + "dBm"+"\nTamanho do Pacote: " + str(tamanho_pacote)+" bytes")
+
+    def atualizarLabelDadosGPS(self, pacoteDadosGPS):
+        latitude = self.repositorio.latitude[-1]
+        longitude = self.repositorio.longitude[-1]
+        sats = self.repositorio.sats[-1]
+        self.labelDadosGPS.setText(f"Latitude: {latitude}\n\nLongitude: {longitude}\n\nSats: {sats}")        
 
     # Funções para iniciar e parar a leitura dos dados   
     def iniciarLeitura(self):
@@ -212,11 +242,12 @@ class MainWindow(QMainWindow):
             self.thread = ThreadPrincipal(self.adaptador)
             
             self.thread.ultimosSubdadosTemperaturaTempo.connect(self.graficoDinamico.atualizarGrafico)
-            self.thread.ultimosSubdadosPressTemp.connect(self.graficoAltPressao.atualizarGrafico)
+            self.thread.ultimosSubdadosPressTemp.connect(self.graficoPressaoTemp.atualizarGrafico)
             self.thread.ultimosSubdadosAltTemp.connect(self.graficoAltTemp.atualizarGrafico)
             
             self.thread.ultimosDadosBrutos.connect(self.atualizarLabelDadoBruto)
             self.thread.dadosdoRadio.connect(self.atualizarLabelDadosdoRadio)
+            self.thread.pacoteDadosGPS.connect(self.atualizarLabelDadosGPS)
 
             self.thread.start()
 
@@ -247,13 +278,35 @@ class MainWindow(QMainWindow):
         salvarDadosTXT(self.repositorio)
         self.mostrarAviso("Aviso", "Dados Salvos.")
 
-    def salvarGrafico(self):
+    def salvarGraficoTemperaturaxTempo(self):
         try:
             now = datetime.now()  
             formatted_time = now.strftime("%Y-%m-%d_%H-%M-%S")
             default_filename = f"grafico_{formatted_time}.png"
             save_path = os.path.join(os.getcwd(), default_filename)  # Salva no diretório atual
             self.graficoDinamico.figure.savefig(save_path)
+            self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
+        except Exception as e:
+            self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
+    
+    def salvarGraficoPressaoxTemperatura(self):
+        try:
+            now = datetime.now()  
+            formatted_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+            default_filename = f"grafico_{formatted_time}.png"
+            save_path = os.path.join(os.getcwd(), default_filename)  # Salva no diretório atual
+            self.graficoPressaoTemp.figure.savefig(save_path)
+            self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
+        except Exception as e:
+            self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
+    
+    def salvarGraficoAltTemp(self):
+        try:
+            now = datetime.now()  
+            formatted_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+            default_filename = f"grafico_{formatted_time}.png"
+            save_path = os.path.join(os.getcwd(), default_filename)  # Salva no diretório atual
+            self.graficoAltTemp.figure.savefig(save_path)
             self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
         except Exception as e:
             self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
@@ -293,8 +346,17 @@ class MainWindow(QMainWindow):
         acaoSalvar = menuArquivo.addAction("Salvar Dados")
         acaoSalvar.triggered.connect(self.salvarDados)
 
-        acaoSalvarGrafico = menuArquivo.addAction("Salvar Gráfico")
-        acaoSalvarGrafico.triggered.connect(self.salvarGrafico)
+        # Cria o submenu Salvar gráficos
+        submenuSalvarGraficos = menuArquivo.addMenu("Salvar Gráficos")
+
+        acaoSalvarGraficoTemp = submenuSalvarGraficos.addAction("Salvar Gráfico Temperatura")
+        acaoSalvarGraficoTemp.triggered.connect(self.salvarGraficoTemperaturaxTempo)
+
+        acaoSalvarGraficoPres = submenuSalvarGraficos.addAction("Salvar Gráfico Pressão")
+        acaoSalvarGraficoPres.triggered.connect(self.salvarGraficoPressaoxTemperatura)
+
+        acaoSalvarGraficoAlt = submenuSalvarGraficos.addAction("Salvar Gráfico Altitude")
+        acaoSalvarGraficoAlt.triggered.connect(self.salvarGraficoAltTemp)
 
         acaoSair = menuArquivo.addAction("Sair")
         acaoSair.triggered.connect(self.close)
@@ -365,7 +427,7 @@ class MainWindow(QMainWindow):
         self.atualizarSubmenuBaudRate(submenuBaudRate)
 
     def mostrarSobre(self):
-        QMessageBox.about(self, "Sobre", "AbaTrack 0.0.5v\nDesenvolvido pela equipe UERJ Sats.")
+        QMessageBox.about(self, "Sobre", "AbaTrack 0.0.7v\nDesenvolvido pela equipe UERJ Sats.")
 
     def adicionarTituloMenu(self):
         
