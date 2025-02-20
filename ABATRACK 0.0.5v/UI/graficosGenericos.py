@@ -1,6 +1,6 @@
 import time
 import datetime
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QCheckBox
 from PyQt6.QtCore import QTimer
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
@@ -14,6 +14,8 @@ class GraficoDinamicoGenerico(QWidget):
         self.titulo_x = titulo_x
         self.titulo_y = titulo_y
         self.titulo = titulo
+        self.erro_exibido = False  # Variável de controle para rastrear se o erro já foi exibido
+        self.nao_mostrar_erro = False  # Variável de controle para "Não mostrar novamente"
 
         if len(listaDadosY) != len(listaDadosX):
             print(f"Aviso: erro nas quantidades de dados do grafico {titulo_x} x {titulo_y}.")
@@ -76,7 +78,9 @@ class GraficoDinamicoGenerico(QWidget):
                 self.ax.autoscale_view()
                 self.canvas.draw()
             except ValueError as e:
-                self.mostrarAviso("Erro ao converter dado para float", str(e))
+                if not self.erro_exibido and not self.nao_mostrar_erro:
+                    self.mostrarAviso("Erro ao converter dado para float", str(e))
+                    self.erro_exibido = True
 
         self.line.set_data(self.x_data, self.y_data)
 
@@ -85,7 +89,14 @@ class GraficoDinamicoGenerico(QWidget):
         aviso.setIcon(QMessageBox.Icon.Warning)
         aviso.setWindowTitle(titulo)
         aviso.setText(mensagem)
+
+        checkbox = QCheckBox("Não mostrar novamente")
+        aviso.setCheckBox(checkbox)
+
         aviso.exec()
+
+        if checkbox.isChecked():
+            self.nao_mostrar_erro = True
 
     def show_tooltip(self, sel):
         x, y = sel.target

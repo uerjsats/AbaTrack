@@ -72,16 +72,22 @@ class MainWindow(QMainWindow):
         self.graficoDinamico = GraficoDinamicoGenerico("Temperatura x Tempo", "Tempo (s)", "Temperatura (°C)", self.repositorio.dadosTemperatura, self.repositorio.tempo)
         self.graficoDinamico.setFixedSize(500, 400)
         # Ajusta as margens manualmente para não cortar os títulos dos eixos
-        self.graficoDinamico.figure.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+        self.graficoDinamico.figure.subplots_adjust(left=0.16, right=0.95, top=0.9, bottom=0.12)
         layoutGraficos.addWidget(self.graficoDinamico)
 
         # Gráfico Altitude x Pressão
         self.graficoAltPressao = GraficoDinamicoGenerico("Pressão x Altitude", "Altitude (m)", "Pressão (hPa)", self.repositorio.altitude, self.repositorio.pressao)
         self.graficoAltPressao.setFixedSize(500, 400)
-        self.graficoAltPressao.figure.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
+        self.graficoAltPressao.figure.subplots_adjust(left=0.17, right=0.95, top=0.9, bottom=0.12)
         layoutGraficos.addWidget(self.graficoAltPressao)
 
         layoutGraficos.addStretch()
+
+        self.graficoAltTemp = GraficoDinamicoGenerico("Altitude x Tempo", "Tempo (s)", "Altitude (m)", self.repositorio.tempo, self.repositorio.altitude)
+        self.graficoAltTemp.setFixedSize(500, 400)
+        self.graficoAltTemp.figure.subplots_adjust(left=0.17, right=0.95, top=0.9, bottom=0.12)
+        layoutGraficos.addWidget(self.graficoAltTemp)
+
         layoutTela1.addLayout(layoutGraficos)
 
         self.stackedWidget.addWidget(self.tela1)
@@ -207,6 +213,7 @@ class MainWindow(QMainWindow):
             
             self.thread.ultimosSubdados.connect(self.graficoDinamico.atualizarGrafico)
             self.thread.ultimosSubdadosAltitude.connect(self.graficoAltPressao.atualizarGrafico)
+            self.thread.ultimosSubdadosAltTemp.connect(self.graficoAltTemp.atualizarGrafico)
             
             self.thread.ultimosDadosBrutos.connect(self.atualizarLabelDadoBruto)
             self.thread.dadosdoRadio.connect(self.atualizarLabelDadosdoRadio)
@@ -404,6 +411,8 @@ class MainWindow(QMainWindow):
         # Adiciona o widget à barra de menu
         self.menuBar.setCornerWidget(widget, Qt.Corner.TopLeftCorner)
 
+
+    # Janelas de Aviso
     def mostrarAvisoSalvarTxt(self, titulo, mensagem):
         if self.settings.value("mostrarAvisosSalvartxt", True, type=bool):
             aviso = QMessageBox()
@@ -431,9 +440,7 @@ class MainWindow(QMainWindow):
 
             if aviso.exec() == QMessageBox.StandardButton.Ok and checkbox.isChecked():
                 self.settings.setValue("mostrarAvisosGrafico", False)
-
-    # Janelas de Aviso
-    
+                  
     def mostrarAvisoErroBaud(self, titulo, mensagem):
         aviso = QMessageBox(self)
         aviso.setWindowTitle(titulo)

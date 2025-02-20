@@ -8,6 +8,7 @@ class ThreadPrincipal(QThread):
     ultimosSubdados = pyqtSignal(float, float)
     ultimosDadosBrutos = pyqtSignal(list)
     ultimosSubdadosAltitude = pyqtSignal(float, float)
+    ultimosSubdadosAltTemp = pyqtSignal(float, float)
     dadosdoRadio = pyqtSignal(float,float,float)
 
     def __init__(self, adaptador: AdaptadorArduino):
@@ -33,9 +34,11 @@ class ThreadPrincipal(QThread):
 
             # Repositorio -> UI
             if self.repositorio.dadosTemperatura and self.repositorio.tempo:
+
                 self.ultimosSubdados.emit(self.repositorio.dadosTemperatura[-1], self.repositorio.tempo[-1])
                 self.ultimosDadosBrutos.emit(self.repositorio.pacotesDados[-1])
                 self.ultimosSubdadosAltitude.emit(self.repositorio.altitude[-1],self.repositorio.pressao[-1])
+                self.ultimosSubdadosAltTemp.emit(self.repositorio.altitude[-1],self.repositorio.dadosTemperatura[-1])
                 self.dadosdoRadio.emit(self.repositorio.numerodepacotes[-1], self.repositorio.RSSI[-1], self.repositorio.tamanhopacote[-1])
     
             else:
