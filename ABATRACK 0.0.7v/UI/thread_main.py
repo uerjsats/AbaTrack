@@ -11,6 +11,7 @@ class ThreadPrincipal(QThread):
     ultimosSubdadosAltTemp = pyqtSignal(float, float)
     dadosdoRadio = pyqtSignal(float, float, float)
     pacoteDadosGPS = pyqtSignal(float,float,float)
+    pacoteGiro = pyqtSignal(float,float,float)
 
     def __init__(self, adaptador: AdaptadorArduino):
         super().__init__()
@@ -36,7 +37,10 @@ class ThreadPrincipal(QThread):
                 filtraSubdado(self.repositorio.tamanhopacote, 6, self.repositorio)
                 filtraSubdado(self.repositorio.latitude, 7, self.repositorio)
                 filtraSubdado(self.repositorio.longitude, 8, self.repositorio)
-                filtraSubdado(self.repositorio.sats, 9, self.repositorio)        
+                filtraSubdado(self.repositorio.sats, 9, self.repositorio)
+                filtraSubdado(self.repositorio.gyrox, 10, self.repositorio)
+                filtraSubdado(self.repositorio.gyroy, 11, self.repositorio)
+                filtraSubdado(self.repositorio.gyroz, 12, self.repositorio)        
 
                 print(self.repositorio.pacotesDados)
                 print(self.repositorio.dadosTemperatura)
@@ -48,7 +52,8 @@ class ThreadPrincipal(QThread):
             # Repositorio -> UI
             if (self.repositorio.dadosTemperatura and self.repositorio.tempo and self.repositorio.altitude
             and self.repositorio.numerodepacotes and self.repositorio.pressao and self.repositorio.tamanhopacote
-            and self.repositorio.RSSI):
+            and self.repositorio.RSSI and self.repositorio.latitude and self.repositorio.longitude and self.repositorio.sats
+            and self.repositorio.gyrox and self.repositorio.gyroy and self.repositorio.gyroz):
 
                 self.ultimosSubdadosTemperaturaTempo.emit(self.repositorio.tempo[-1], self.repositorio.dadosTemperatura[-1])
                 self.ultimosDadosBrutos.emit(self.repositorio.pacotesDados[-1])
@@ -56,6 +61,7 @@ class ThreadPrincipal(QThread):
                 self.ultimosSubdadosAltTemp.emit(self.repositorio.tempo[-1], self.repositorio.altitude[-1])
                 self.dadosdoRadio.emit(self.repositorio.numerodepacotes[-1], self.repositorio.RSSI[-1], self.repositorio.tamanhopacote[-1])
                 self.pacoteDadosGPS.emit(self.repositorio.latitude[-1], self.repositorio.longitude[-1], self.repositorio.sats[-1])
+                self.pacoteGiro.emit(self.repositorio.gyrox[-1], self.repositorio.gyroy[-1], self.repositorio.gyroz[-1])
     
             else:
                 print("Repositorio vazio")

@@ -6,6 +6,9 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget,
 from PyQt6.QtCore import QTimer, QSettings, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QActionGroup
 import serial.tools.list_ports
+import pyqtgraph.opengl as gl
+from pyqtgraph.Qt import QtGui, QtCore
+import numpy as np
 
 # Adicione o diretório 'integracao' ao sys.path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'integracao'))
@@ -101,17 +104,17 @@ class MainWindow(QMainWindow):
 
         # Gráfico Temperatura x Tempo
         self.graficoDinamico = GraficoDinamicoGenerico("Temperatura (°C) x Tempo (s)", "Tempo (s)", "Temperatura (°C)", self.repositorio.tempo, self.repositorio.dadosTemperatura)
-        self.graficoDinamico.setFixedSize(400, 300)
+        self.graficoDinamico.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoDinamico)
 
         # Gráfico Pressão x Tempo
         self.graficoPressaoTemp = GraficoDinamicoGenerico("Pressão (Pa) x Tempo (s)", "Tempo (s)", "Pressão (hPa)", self.repositorio.tempo, self.repositorio.pressao)
-        self.graficoPressaoTemp.setFixedSize(400, 300)
+        self.graficoPressaoTemp.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoPressaoTemp)
 
         # Gráfico Altitude x Tempo
         self.graficoAltTemp = GraficoDinamicoGenerico("Altitude (m) x Tempo (s)", "Tempo (s)", "Altitude (m)", self.repositorio.tempo1, self.repositorio.altitude)
-        self.graficoAltTemp.setFixedSize(400, 300)
+        self.graficoAltTemp.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoAltTemp)
 
         # Cria um widget para encapsular o layout de gráficos
@@ -167,7 +170,48 @@ class MainWindow(QMainWindow):
         # Tela 3
         self.tela3 = QWidget()
         layoutTela3 = QVBoxLayout(self.tela3)
-        layoutTela3.addStretch()
+
+        layoutTela3.setContentsMargins(200, 50, 50, 50)
+
+        # Adiciona o cubo 3D
+        self.view = gl.GLViewWidget()
+        self.view.setCameraPosition(distance=7)
+        self.view.setFixedSize(600, 400)  # Define o tamanho do widget 3D
+        layoutTela3.addWidget(self.view)
+
+        # Cria o cubo 3D
+        self.cube = gl.GLMeshItem(meshdata=self.create_cube(), smooth=False, color=(0.686, 0.145, 0.733, 1), shader='shaded', drawEdges=True)
+        self.view.addItem(self.cube)
+
+        # Cria o container Gyro
+        self.containerGyro = QFrame()
+        self.containerGyro.setStyleSheet("""
+            background-color: #243482;
+            border-radius: 10px;
+            color: white;
+            padding: 10px;
+        """)
+        self.containerGyro.setFixedSize(400, 200)
+
+        # Adiciona sombra ao containerGyro
+        shadow_effect_gyro = QGraphicsDropShadowEffect()
+        shadow_effect_gyro.setBlurRadius(10)
+        shadow_effect_gyro.setOffset(5, 5)
+        self.containerGyro.setGraphicsEffect(shadow_effect_gyro)
+
+        layoutContainerGyro = QVBoxLayout(self.containerGyro)
+
+        # Cria o QLabel para os dados do Gyro
+        self.labelDadosGyro = QLabel("Gyro X:\n\nGyro Y:\n\nGyro Z:")
+        self.labelDadosGyro.setStyleSheet("font-size: 13px;")  # Aumenta a fonte para 16px
+        layoutContainerGyro.addWidget(self.labelDadosGyro)
+
+        # Adiciona o containerGyro ao layout da Tela 3
+        layoutTela3.addWidget(self.containerGyro, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # Adiciona margens ao layout da Tela 3 para alinhar o containerGyro
+        layoutTela3.setContentsMargins(100, 100, 150, 290)
+
         self.stackedWidget.addWidget(self.tela3)
 
         # Adiciona o QStackedWidget ao layout horizontal
@@ -214,6 +258,9 @@ class MainWindow(QMainWindow):
         self.layoutBotoesEPacotes = QHBoxLayout()
         self.layoutBotoesEPacotes.addWidget(self.labelPacotesBrutos, alignment=Qt.AlignmentFlag.AlignLeft)
 
+        # Adiciona o layoutBotoesEPacotes ao layoutInferior
+        self.layoutInferior.addLayout(self.layoutBotoesEPacotes)
+
         # Adiciona o layout inferior ao layout principal
         self.layout.addLayout(self.layoutInferior)
 
@@ -238,7 +285,7 @@ class MainWindow(QMainWindow):
     
     # Funções para atualizar a interface gráfica
     def atualizarLabelDadoBruto(self, ultimoPacoteDados):
-            self.labelPacotesBrutos.setText("Dados dos pacotes recebidos: "+":".join(map(str, ultimoPacoteDados)))
+        self.labelPacotesBrutos.setText("Dados dos pacotes recebidos: " + ":".join(map(str, ultimoPacoteDados)))
 
     def atualizarLabelDadosdoRadio(self, numeroDePacotes):
         if self.repositorio.numerodepacotes:  
@@ -253,6 +300,20 @@ class MainWindow(QMainWindow):
         sats = self.repositorio.sats[-1]
         self.labelDadosGPS.setText(f"Latitude: {latitude}\n\nLongitude: {longitude}\n\nSats: {sats}")        
 
+    def atualizarLabelDadosGiro(self, pacoteGiro):
+        # Atualiza a rotação do cubo 3D com base nos dados do sensor MPU6050
+        roll = self.repositorio.gyrox[-1]
+        pitch = self.repositorio.gyroy[-1]
+        yaw = self.repositorio.gyroz[-1]
+
+        self.cube.resetTransform()
+        self.cube.rotate(roll, 1, 0, 0)
+        self.cube.rotate(pitch, 0, 1, 0)
+        self.cube.rotate(yaw, 0, 0, 1)
+
+        # Atualiza o QLabel com os dados do Gyro
+        self.labelDadosGyro.setText(f"Gyro X: {roll}\n\nGyro Y: {pitch}\n\nGyro Z: {yaw}")
+
     # Funções para iniciar e parar a leitura dos dados   
     def iniciarLeitura(self):
         if self.thread is None or not self.thread.isRunning():
@@ -265,6 +326,7 @@ class MainWindow(QMainWindow):
             self.thread.ultimosDadosBrutos.connect(self.atualizarLabelDadoBruto)
             self.thread.dadosdoRadio.connect(self.atualizarLabelDadosdoRadio)
             self.thread.pacoteDadosGPS.connect(self.atualizarLabelDadosGPS)
+            self.thread.pacoteGiro.connect(self.atualizarLabelDadosGiro)
 
             self.thread.start()
 
@@ -563,3 +625,32 @@ class MainWindow(QMainWindow):
         self.settings.setValue("mostrarAvisosGrafico", True)
         self.settings.setValue("mostrarAvisosSalvartxt", True)
         self.settings.setValue("mostrarAvisosBaud", True)
+
+    def create_cube(self):
+        verts = np.array([
+            [1, 1, 1],
+            [1, 1, -1],
+            [1, -1, 1],
+            [1, -1, -1],
+            [-1, 1, 1],
+            [-1, 1, -1],
+            [-1, -1, 1],
+            [-1, -1, -1]
+        ])
+
+        faces = np.array([
+            [0, 1, 2],
+            [1, 3, 2],
+            [4, 5, 6],
+            [5, 7, 6],
+            [0, 1, 4],
+            [1, 5, 4],
+            [2, 3, 6],
+            [3, 7, 6],
+            [0, 2, 4],
+            [2, 6, 4],
+            [1, 3, 5],
+            [3, 7, 5]
+        ])
+
+        return gl.MeshData(vertexes=verts, faces=faces)
