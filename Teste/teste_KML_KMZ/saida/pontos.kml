@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Placemark id="3">
+            <name>São Paulo</name>
+            <Point id="2">
+                <coordinates>-46.6333,-23.55,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="5">
+            <name>Rio de Janeiro</name>
+            <Point id="4">
+                <coordinates>-43.1729,-22.9068,0.0</coordinates>
+            </Point>
+        </Placemark>
+    </Document>
+</kml>
