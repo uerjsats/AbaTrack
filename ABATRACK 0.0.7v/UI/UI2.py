@@ -9,6 +9,7 @@ import serial.tools.list_ports
 import pyqtgraph.opengl as gl
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
+from PIL import Image, ImageOps
 
 # Adicione o diretório 'integracao' ao sys.path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'integracao'))
@@ -380,6 +381,12 @@ class MainWindow(QMainWindow):
             default_filename = f"grafico_{formatted_time}.png"
             save_path = os.path.join(os.getcwd(), default_filename)  # Salva no diretório atual
             self.graficoDinamico.figure.savefig(save_path)
+
+            # Inverte as cores da imagem
+            image = Image.open(save_path)
+            inverted_image = ImageOps.invert(image.convert("RGB"))
+            inverted_image.save(save_path)
+
             self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
         except Exception as e:
             self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
@@ -391,6 +398,12 @@ class MainWindow(QMainWindow):
             default_filename = f"grafico_{formatted_time}.png"
             save_path = os.path.join(os.getcwd(), default_filename)  # Salva no diretório atual
             self.graficoPressaoTemp.figure.savefig(save_path)
+
+            # Inverte as cores da imagem
+            image = Image.open(save_path)
+            inverted_image = ImageOps.invert(image.convert("RGB"))
+            inverted_image.save(save_path)
+
             self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
         except Exception as e:
             self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
@@ -402,6 +415,12 @@ class MainWindow(QMainWindow):
             default_filename = f"grafico_{formatted_time}.png"
             save_path = os.path.join(os.getcwd(), default_filename)  # Salva no diretório atual
             self.graficoAltTemp.figure.savefig(save_path)
+
+            # Inverte as cores da imagem
+            image = Image.open(save_path)
+            inverted_image = ImageOps.invert(image.convert("RGB"))
+            inverted_image.save(save_path)
+
             self.mostrarAvisoGrafico("Sucesso", f"Gráfico salvo em: {save_path}")
         except Exception as e:
             self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
