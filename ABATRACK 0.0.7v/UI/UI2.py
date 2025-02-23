@@ -24,8 +24,8 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("AbaTrack")
-        self.resize(800, 700)
         self.setWindowOpacity(0.95)
+        self.setMinimumSize(700, 800)  # Define o tamanho mínimo da janela
 
         # Instancias dos objetos
         self.repositorio = RepositorioTelemetria()
@@ -344,13 +344,29 @@ class MainWindow(QMainWindow):
     def pressionarConectar(self):
         try:
             self.adaptador.conectar()
-
             self.iniciarLeitura()
-
+            self.mostrarToast("Conectado com sucesso!")
         except Exception as e:
             self.mostrarAviso("Erro ao conectar", str(e))
-
             self.pressionarDesconectar()
+
+    def mostrarToast(self, mensagem):
+        toast = QLabel(mensagem, self)
+        toast.setStyleSheet("""
+            QLabel {
+                background-color: #444;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+            }
+        """)
+        toast.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        toast.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        toast.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        toast.setGeometry(self.geometry().center().x() - 100, self.geometry().center().y() - 50, 200, 50)
+        toast.show()
+
+        QTimer.singleShot(2000, toast.close)  # Fecha o toast após 3 segundos
 
     # Funções para salvar os dados e o gráfico
     def salvarDados(self):

@@ -36,5 +36,5 @@ def salvarDadosTXT(repositorio: RepositorioTelemetria):
         file.write("-------------------------------\n")
 
         for pacote in repositorio.pacotesDados:
-            file.write(f"{pacote}°C\n")
+            file.write(f"{pacote[0]}°C  {pacote[1]}s  {pacote[2]}Pa  {pacote[3]}m  latitude:{pacote[4]}  longitude:{pacote[5]}  n° de sats:{pacote[6]}  giro x:{pacote[7]}  giro y:{pacote[8]}  giro z:{pacote[9]}  n° de pacotes:{pacote[10]}  RSSI:{pacote[11]} dBm  tamanho do pacote:{pacote[12]}\n")
     print("Histórico salvo no TXT")
