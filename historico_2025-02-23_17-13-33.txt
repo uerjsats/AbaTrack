@@ -1,0 +1,11 @@
+Historico de Telemetria - 2025-02-23_17-13-33
+-------------------------------
+33.4°C  210.0s  900.0Pa  1620.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-232.0  giro y:-89.0  giro z:-328.0  n° de pacotes:211.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  211.0s  900.0Pa  2076.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:125.0  giro y:257.0  giro z:-204.0  n° de pacotes:212.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  212.0s  900.0Pa  2617.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-205.0  giro y:273.0  giro z:61.0  n° de pacotes:213.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  213.0s  900.0Pa  1130.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:41.0  giro y:265.0  giro z:-52.0  n° de pacotes:214.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  214.0s  900.0Pa  2980.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:276.0  giro y:-207.0  giro z:3.0  n° de pacotes:215.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  215.0s  900.0Pa  1295.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:76.0  giro y:-17.0  giro z:73.0  n° de pacotes:216.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  216.0s  900.0Pa  2823.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-67.0  giro y:-450.0  giro z:-180.0  n° de pacotes:217.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  217.0s  900.0Pa  2142.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-426.0  giro y:27.0  giro z:343.0  n° de pacotes:218.0  RSSI:-110.0 dBm  tamanho do pacote:6.0
+33.4°C  218.0s  900.0Pa  2852.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:341.0  giro y:-444.0  giro z:180.0  n° de pacotes:219.0  RSSI:-110.0 dBm  tamanho do pacote:6.0

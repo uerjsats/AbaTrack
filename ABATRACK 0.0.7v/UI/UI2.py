@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         self.configs = ConfigsComunicacao(portaArduino=None, baudRate=9600)
         self.adaptador = AdaptadorArduino(self.repositorio, self.configs)
         self.thread = None
+        self.dadosRecebidos = False  # Variável de controle para verificar se houve leitura na serial
 
         # Adiciona a barra de menu
         self.menuBar = self.menuBar()
@@ -286,6 +287,7 @@ class MainWindow(QMainWindow):
     
     # Funções para atualizar a interface gráfica
     def atualizarLabelDadoBruto(self, ultimoPacoteDados):
+        self.dadosRecebidos = True  # Atualiza a variável de controle
         self.labelPacotesBrutos.setText("Dados dos pacotes recebidos: " + ":".join(map(str, ultimoPacoteDados)))
 
     def atualizarLabelDadosdoRadio(self, numeroDePacotes):
@@ -661,6 +663,7 @@ class MainWindow(QMainWindow):
         self.settings.setValue("mostrarAvisosSalvartxt", True)
         self.settings.setValue("mostrarAvisosBaud", True)
 
+    # Função para criar um cubo 3D
     def create_cube(self):
         verts = np.array([
             [1, 1, 1],
@@ -689,3 +692,8 @@ class MainWindow(QMainWindow):
         ])
 
         return gl.MeshData(vertexes=verts, faces=faces)
+
+    def closeEvent(self, event):
+        if self.dadosRecebidos:  # Verifica se houve leitura na serial
+            self.salvarDados()
+        event.accept()
