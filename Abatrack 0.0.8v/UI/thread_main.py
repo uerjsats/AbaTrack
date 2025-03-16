@@ -1,7 +1,7 @@
 from integracao.adaptador_arduino import AdaptadorArduino
 from aplicacao.use_cases import *
 from dominio.entidades import *
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal
 import time
 
 class ThreadPrincipal(QThread):

@@ -1,7 +1,7 @@
 import serial 
 from dominio.entidades import *
 from aplicacao.use_cases import *
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 class AdaptadorArduino(QObject):
     erroDecodificacao = pyqtSignal(str)

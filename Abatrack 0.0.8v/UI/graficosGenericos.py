@@ -1,7 +1,7 @@
 import time
 import datetime
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QCheckBox
-from PyQt6.QtCore import QTimer
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QCheckBox
+from PyQt5.QtCore import QTimer
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 import mplcursors

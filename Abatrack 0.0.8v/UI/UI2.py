@@ -1,15 +1,17 @@
 import os
 import sys
 from datetime import datetime
-from PyQt6.QtWidgets import (QMainWindow, QWidget, 
-                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame, QSpacerItem, QSizePolicy, QLineEdit)
-from PyQt6.QtCore import QTimer, QSettings, Qt
-from PyQt6.QtGui import QIcon, QPixmap, QActionGroup
+from PyQt5.QtWidgets import (QMainWindow, QWidget, 
+                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame, QSpacerItem, QSizePolicy, QLineEdit, QActionGroup)
+from PyQt5.QtCore import QTimer, QSettings, Qt
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtWebEngineWidgets import QWebEngineView  # Corrigido
 import serial.tools.list_ports
 import pyqtgraph.opengl as gl
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 from PIL import Image, ImageOps
+import folium
 
 # Adicione o diretório 'integracao' ao sys.path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'integracao'))
@@ -23,7 +25,9 @@ from UI.thread_main import ThreadPrincipal
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.initUI()
 
+    def initUI(self):
         self.setWindowTitle("AbaTrack")
         self.setWindowOpacity(0.95)
         self.setMinimumSize(700, 800)  # Define o tamanho mínimo da janela
@@ -69,7 +73,7 @@ class MainWindow(QMainWindow):
 
         # Botão para Tela 1
         self.botaoTela1 = QPushButton("", self)
-        self.botaoTela1.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        self.botaoTela1.setFixedSize(45, 25)  
         icon_path_tela1 = os.path.join(base_path, "imgs", "icon_tela1.png")  # Caminho para a imagem PNG
         self.botaoTela1.setIcon(QIcon(icon_path_tela1))  
         self.botaoTela1.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
@@ -77,7 +81,7 @@ class MainWindow(QMainWindow):
 
         # Botão para Tela 2
         self.botaoTela2 = QPushButton("", self)
-        self.botaoTela2.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        self.botaoTela2.setFixedSize(45, 25)  
         icon_path_tela2 = os.path.join(base_path, "imgs", "icon_tela2.png")  # Caminho para a imagem PNG
         self.botaoTela2.setIcon(QIcon(icon_path_tela2))  
         self.botaoTela2.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
@@ -85,7 +89,7 @@ class MainWindow(QMainWindow):
 
         # Botão para Tela 3
         self.botaoTela3 = QPushButton("", self)
-        self.botaoTela3.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
+        self.botaoTela3.setFixedSize(45, 25)  
         icon_path_tela3 = os.path.join(base_path, "imgs", "icon_tela3.png")  # Caminho para a imagem PNG
         self.botaoTela3.setIcon(QIcon(icon_path_tela3)) 
         self.botaoTela3.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
@@ -136,7 +140,7 @@ class MainWindow(QMainWindow):
 
         # Tela 2
         self.tela2 = QWidget()
-        layoutTela2 = QVBoxLayout(self.tela2)
+        layoutTela2 = QHBoxLayout(self.tela2)  # Alterado para QHBoxLayout
 
         # Cria o container GPS
         self.containerGPS = QFrame()
@@ -161,11 +165,17 @@ class MainWindow(QMainWindow):
         self.labelDadosGPS.setStyleSheet("font-size: 13px;")  # Aumenta a fonte para 16px
         layoutContainerGPS.addWidget(self.labelDadosGPS)
 
-        # Adiciona margens ao layout
-        layoutTela2.setContentsMargins(100, 100, 100, 100)
+        # Adiciona o containerGPS ao layout da tela 2
+        layoutTela2.addWidget(self.containerGPS)
 
+        # Adiciona o mapa offline
+        self.mapaView = QWebEngineView()
+        mapa_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mapa.html')
+        self.mapaView.setUrl(QtCore.QUrl.fromLocalFile(mapa_path))
+        self.mapaView.setFixedSize(800, 400)  # Ajuste o tamanho conforme necessário
 
-        layoutTela2.addWidget(self.containerGPS, alignment=Qt.AlignmentFlag.AlignRight)
+        # Adiciona o mapa ao layout da tela 2
+        layoutTela2.addWidget(self.mapaView)
 
         self.stackedWidget.addWidget(self.tela2)
 
@@ -177,8 +187,8 @@ class MainWindow(QMainWindow):
 
         # Adiciona o cubo 3D
         self.view = gl.GLViewWidget()
-        self.view.setCameraPosition(distance=7)
-        self.view.setFixedSize(600, 400)  # Define o tamanho do widget 3D
+        self.view.setCameraPosition(distance=8)
+        self.view.setFixedSize(800, 400)  # Define o tamanho do widget 3D
         layoutTela3.addWidget(self.view)
 
         # Cria o cubo 3D
@@ -193,7 +203,7 @@ class MainWindow(QMainWindow):
             color: white;
             padding: 10px;
         """)
-        self.containerGyro.setFixedSize(400, 200)
+        self.containerGyro.setFixedSize(200, 200)
 
         # Adiciona sombra ao containerGyro
         shadow_effect_gyro = QGraphicsDropShadowEffect()
@@ -204,7 +214,7 @@ class MainWindow(QMainWindow):
         layoutContainerGyro = QVBoxLayout(self.containerGyro)
 
         # Cria o QLabel para os dados do Gyro
-        self.labelDadosGyro = QLabel("Gyro X:\n\nGyro Y:\n\nGyro Z:")
+        self.labelDadosGyro = QLabel("Accel X:\n\nAccel Y:\n\nAccel Z:")
         self.labelDadosGyro.setStyleSheet("font-size: 13px;")  # Aumenta a fonte para 16px
         layoutContainerGyro.addWidget(self.labelDadosGyro)
 
@@ -212,7 +222,7 @@ class MainWindow(QMainWindow):
         layoutTela3.addWidget(self.containerGyro, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Adiciona margens ao layout da Tela 3 para alinhar o containerGyro
-        layoutTela3.setContentsMargins(100, 100, 150, 290)
+        layoutTela3.setContentsMargins(100, 100, 150, 200)
 
         self.stackedWidget.addWidget(self.tela3)
 
@@ -260,8 +270,19 @@ class MainWindow(QMainWindow):
 
         self.inputComando = QLineEdit(self)
         self.inputComando.setPlaceholderText("Digite o comando")
-        self.inputComando.setFixedSize(700, 30)  
-        self.inputComando.returnPressed.connect(self.enviarComandoSerial) 
+        self.inputComando.setFixedSize(700, 30)
+        self.inputComando.setStyleSheet("""
+            QLineEdit {
+                color: white; /* Cor do texto */
+                border: 1px solid #ccc; /* Contorno suave */
+                border-radius: 5px; /* Bordas arredondadas */
+                padding: 5px; /* Espaçamento interno */
+            }
+            QLineEdit:focus {
+                border: 1px solid #63A32E; /* Contorno verde quando focado */
+            }
+        """)
+        self.inputComando.returnPressed.connect(self.enviarComandoSerial)
         layoutComandos.addWidget(self.inputComando)
 
         #self.botaoEnviarComando = QPushButton("Enviar", self)
@@ -275,6 +296,7 @@ class MainWindow(QMainWindow):
         
         # Em seguida o label para os dados dos pacotes
         self.labelPacotesBrutos = QLabel("Dados dos pacotes recebidos: ")
+        self.labelPacotesBrutos.setStyleSheet("color: white;")  # Adiciona esta linha
 
         # Layout horizontal para o label dos pacotes
         self.layoutBotoesEPacotes = QHBoxLayout()
@@ -463,7 +485,7 @@ class MainWindow(QMainWindow):
             font-size: 16px; /* Aumenta o tamanho da fonte */
             -webkit-text-stroke-width: 0.5px; /* Contorno preto */
             -webkit-text-stroke-color: #000;
-            padding: 12px; /* Adiciona padding para centralizar o texto */
+            padding: 15px; /* Adiciona padding para centralizar o texto */
             margin: 0px 4px; /* Adiciona margem para centralizar o texto */
             height: 50%; /* Ajusta a altura dos itens para serem da altura da menuBar */
             border-radius: 1; /* Borda quadrada */
@@ -727,3 +749,7 @@ class MainWindow(QMainWindow):
         if self.dadosRecebidos:  # Verifica se houve leitura na serial
             self.salvarDados()
         event.accept()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
