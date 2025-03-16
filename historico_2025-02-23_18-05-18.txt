@@ -1,7 +1,0 @@
-Historico de Telemetria - 2025-02-23_18-05-18
--------------------------------
-33.0°C  0.0s  900.0Pa  1457.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-120.0  giro y:-338.0  giro z:-105.0  n° de pacotes:1.0  RSSI:-89.0 dBm  tamanho do pacote:6.0
-33.0°C  1.0s  900.0Pa  1350.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:204.0  giro y:-143.0  giro z:52.0  n° de pacotes:2.0  RSSI:-89.0 dBm  tamanho do pacote:6.0
-33.0°C  2.0s  900.0Pa  2272.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-295.0  giro y:215.0  giro z:52.0  n° de pacotes:3.0  RSSI:-89.0 dBm  tamanho do pacote:6.0
-33.0°C  3.0s  900.0Pa  2699.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-134.0  giro y:-77.0  giro z:39.0  n° de pacotes:4.0  RSSI:-89.0 dBm  tamanho do pacote:6.0
-33.0°C  4.0s  900.0Pa  2111.0m  latitude:-22.89  longitude:-20.56  n° de sats:2.0  giro x:-299.0  giro y:-5.0  giro z:-414.0  n° de pacotes:5.0  RSSI:-89.0 dBm  tamanho do pacote:6.0
