@@ -4,6 +4,7 @@ class RepositorioTelemetria:
         self.dadosTemperatura = []
         self.tempo = []
         self.tempo1 = []
+        self.umidade = []
         self.pressao = []
         self.pressao1 = []
         self.altitude = []

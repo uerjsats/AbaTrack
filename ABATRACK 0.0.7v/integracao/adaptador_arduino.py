@@ -44,3 +44,9 @@ class AdaptadorArduino(QObject):
             print(erro_msg)
             self.erroSerial.emit(erro_msg)
             return None
+        
+    def enviarComando(self, comando):
+        if self.conexao and self.conexao.is_open:
+            self.conexao.write(comando.encode())
+        else:
+            raise Exception("Serial não está conectada")

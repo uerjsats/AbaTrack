@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QWidget, 
-                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame, QSpacerItem, QSizePolicy)
+                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QGraphicsDropShadowEffect, QMessageBox, QCheckBox, QStackedWidget, QInputDialog, QMenu, QFrame, QSpacerItem, QSizePolicy, QLineEdit)
 from PyQt6.QtCore import QTimer, QSettings, Qt
 from PyQt6.QtGui import QIcon, QPixmap, QActionGroup
 import serial.tools.list_ports
@@ -252,7 +252,27 @@ class MainWindow(QMainWindow):
         layoutContainerRadio.setContentsMargins(10, 10, 10, 10)
 
         self.layoutInferior.addWidget(self.containerDadosdoRadio, alignment=Qt.AlignmentFlag.AlignRight)
+        
+        # Adiciona a caixa de texto e o botão para enviar comandos via Serial
+        layoutComandos = QHBoxLayout()
+        layoutComandos.setContentsMargins(0, 0, 0, 0)  
+        layoutComandos.setSpacing(1)  
 
+        self.inputComando = QLineEdit(self)
+        self.inputComando.setPlaceholderText("Digite o comando")
+        self.inputComando.setFixedSize(700, 30)  
+        self.inputComando.returnPressed.connect(self.enviarComandoSerial) 
+        layoutComandos.addWidget(self.inputComando)
+
+        #self.botaoEnviarComando = QPushButton("Enviar", self)
+        #self.botaoEnviarComando.setFixedSize(100, 30)  
+        #self.botaoEnviarComando.clicked.connect(self.enviarComandoSerial)
+        #layoutComandos.addWidget(self.botaoEnviarComando)
+
+        layoutComandos.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+
+        self.layoutInferior.addLayout(layoutComandos)
+        
         # Em seguida o label para os dados dos pacotes
         self.labelPacotesBrutos = QLabel("Dados dos pacotes recebidos: ")
 
@@ -692,6 +712,16 @@ class MainWindow(QMainWindow):
         ])
 
         return gl.MeshData(vertexes=verts, faces=faces)
+
+    def enviarComandoSerial(self):
+        comando = self.inputComando.text()
+        if comando:
+            try:
+                self.adaptador.enviarComando(comando)
+                self.inputComando.clear()
+                self.mostrarToast("Comando enviado com sucesso!")
+            except Exception as e:
+                self.mostrarAviso("Erro ao enviar comando", str(e))
 
     def closeEvent(self, event):
         if self.dadosRecebidos:  # Verifica se houve leitura na serial
