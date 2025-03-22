@@ -40,9 +40,9 @@ class ThreadPrincipal(QThread):
                 filtraSubdado(self.repositorio.latitude, 5, self.repositorio)
                 filtraSubdado(self.repositorio.longitude, 6, self.repositorio)
                 filtraSubdado(self.repositorio.sats, 7, self.repositorio)
-                filtraSubdado(self.repositorio.gyrox, 8, self.repositorio)
-                filtraSubdado(self.repositorio.gyroy, 9, self.repositorio)
-                filtraSubdado(self.repositorio.gyroz, 10, self.repositorio)
+                filtraSubdado(self.repositorio.roll, 8, self.repositorio)
+                filtraSubdado(self.repositorio.pitch, 9, self.repositorio)
+                filtraSubdado(self.repositorio.yaw, 10, self.repositorio)
                 filtraSubdado(self.repositorio.numerodepacotes, 11, self.repositorio)
                 filtraSubdado(self.repositorio.RSSI, 12, self.repositorio)
                 filtraSubdado(self.repositorio.tamanhopacote, 13, self.repositorio)      
@@ -58,7 +58,7 @@ class ThreadPrincipal(QThread):
             if (self.repositorio.dadosTemperatura and self.repositorio.tempo and self.repositorio.altitude
             and self.repositorio.numerodepacotes and self.repositorio.pressao and self.repositorio.tamanhopacote
             and self.repositorio.RSSI and self.repositorio.latitude and self.repositorio.longitude and self.repositorio.sats
-            and self.repositorio.gyrox and self.repositorio.gyroy and self.repositorio.gyroz and self.repositorio.umidade):
+            and self.repositorio.accelx and self.repositorio.accely and self.repositorio.accelz and self.repositorio.umidade):
 
                 self.ultimosSubdadosTemperaturaTempo.emit(self.repositorio.tempo[-1], self.repositorio.dadosTemperatura[-1])
                 self.ultimosDadosBrutos.emit(self.repositorio.pacotesDados[-1])
@@ -67,7 +67,7 @@ class ThreadPrincipal(QThread):
                 self.ultimosSubdadosPressAlt.emit(self.repositorio.pressao1[-1], self.repositorio.altitude1[-1])
                 self.dadosdoRadio.emit(self.repositorio.numerodepacotes[-1], self.repositorio.RSSI[-1], self.repositorio.tamanhopacote[-1])
                 self.pacoteDadosGPS.emit(self.repositorio.latitude[-1], self.repositorio.longitude[-1], self.repositorio.sats[-1])
-                self.pacoteGiro.emit(self.repositorio.gyrox[-1], self.repositorio.gyroy[-1], self.repositorio.gyroz[-1])
+                self.pacoteGiro.emit(self.repositorio.roll[-1], self.repositorio.pitch[-1], self.repositorio.yaw[-1])
                 self.pacoteUmidade.emit(self.repositorio.umidade[-1])
     
             else:

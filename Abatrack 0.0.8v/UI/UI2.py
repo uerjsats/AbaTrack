@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
 
         # Botão para Tela 1
         self.botaoTela1 = QPushButton("", self)
-        self.botaoTela1.setFixedSize(45, 25)  
+        self.botaoTela1.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
         icon_path_tela1 = os.path.join(base_path, "imgs", "icon_tela1.png")  # Caminho para a imagem PNG
         self.botaoTela1.setIcon(QIcon(icon_path_tela1))  
         self.botaoTela1.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(0))
@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
 
         # Botão para Tela 2
         self.botaoTela2 = QPushButton("", self)
-        self.botaoTela2.setFixedSize(45, 25)  
+        self.botaoTela2.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
         icon_path_tela2 = os.path.join(base_path, "imgs", "icon_tela2.png")  # Caminho para a imagem PNG
         self.botaoTela2.setIcon(QIcon(icon_path_tela2))  
         self.botaoTela2.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(1))
@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
 
         # Botão para Tela 3
         self.botaoTela3 = QPushButton("", self)
-        self.botaoTela3.setFixedSize(45, 25)  
+        self.botaoTela3.setFixedSize(45, 25)  # Metade do tamanho dos botões verdes
         icon_path_tela3 = os.path.join(base_path, "imgs", "icon_tela3.png")  # Caminho para a imagem PNG
         self.botaoTela3.setIcon(QIcon(icon_path_tela3)) 
         self.botaoTela3.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
         self.mapaView = QWebEngineView()
         mapa_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mapa.html')
         self.mapaView.setUrl(QtCore.QUrl.fromLocalFile(mapa_path))
-        self.mapaView.setFixedSize(800, 400)  # Ajuste o tamanho conforme necessário
+        self.mapaView.setFixedSize(1000, 500)  # Ajuste o tamanho conforme necessário
 
         # Adiciona o mapa ao layout da tela 2
         layoutTela2.addWidget(self.mapaView)
@@ -187,8 +187,8 @@ class MainWindow(QMainWindow):
 
         # Adiciona o cubo 3D
         self.view = gl.GLViewWidget()
-        self.view.setCameraPosition(distance=8)
-        self.view.setFixedSize(800, 400)  # Define o tamanho do widget 3D
+        self.view.setCameraPosition(distance=9)
+        self.view.setFixedSize(1000, 400)  # Define o tamanho do widget 3D
         layoutTela3.addWidget(self.view)
 
         # Cria o cubo 3D
@@ -222,7 +222,7 @@ class MainWindow(QMainWindow):
         layoutTela3.addWidget(self.containerGyro, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Adiciona margens ao layout da Tela 3 para alinhar o containerGyro
-        layoutTela3.setContentsMargins(100, 100, 150, 200)
+        layoutTela3.setContentsMargins(100, 100, 150, 290)
 
         self.stackedWidget.addWidget(self.tela3)
 
@@ -285,11 +285,6 @@ class MainWindow(QMainWindow):
         self.inputComando.returnPressed.connect(self.enviarComandoSerial)
         layoutComandos.addWidget(self.inputComando)
 
-        #self.botaoEnviarComando = QPushButton("Enviar", self)
-        #self.botaoEnviarComando.setFixedSize(100, 30)  
-        #self.botaoEnviarComando.clicked.connect(self.enviarComandoSerial)
-        #layoutComandos.addWidget(self.botaoEnviarComando)
-
         layoutComandos.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
         self.layoutInferior.addLayout(layoutComandos)
@@ -347,9 +342,9 @@ class MainWindow(QMainWindow):
 
     def atualizarLabelDadosGiro(self, pacoteGiro):
         # Atualiza a rotação do cubo 3D com base nos dados do sensor MPU6050
-        roll = self.repositorio.gyrox[-1]
-        pitch = self.repositorio.gyroy[-1]
-        yaw = self.repositorio.gyroz[-1]
+        roll = self.repositorio.roll[-1]
+        pitch = self.repositorio.pitch[-1]
+        yaw = self.repositorio.yaw[-1]
 
         self.cube.resetTransform()
         self.cube.rotate(roll, 1, 0, 0)

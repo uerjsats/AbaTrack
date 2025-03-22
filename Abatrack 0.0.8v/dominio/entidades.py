@@ -15,9 +15,9 @@ class RepositorioTelemetria:
         self.latitude = []
         self.longitude = []
         self.sats = []
-        self.gyrox = []
-        self.gyroy = []
-        self.gyroz = []
+        self.roll = []
+        self.pitch = []
+        self.yaw = []
 
     def __str__(self):
         if self.pacotesDados:
