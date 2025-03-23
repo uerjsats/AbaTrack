@@ -161,8 +161,8 @@ class MainWindow(QMainWindow):
         layoutContainerGPS = QVBoxLayout(self.containerGPS)
 
         # Cria o QLabel para os dados do GPS
-        self.labelDadosGPS = QLabel("Latitude:\n\nLongitude:\n\nSats:")
-        self.labelDadosGPS.setStyleSheet("font-size: 13px;")  # Aumenta a fonte para 16px
+        self.labelDadosGPS = QLabel('<div style="text-align: center; padding: 10px;"><b>Dados GPS</b></div><br>Latitude:<br><br>Longitude:<br><br>Sats: ')
+        self.labelDadosGPS.setStyleSheet("font-size: 15px;")  # Aumenta a fonte para 16px
         layoutContainerGPS.addWidget(self.labelDadosGPS)
 
         # Adiciona o containerGPS ao layout da tela 2
@@ -183,8 +183,6 @@ class MainWindow(QMainWindow):
         self.tela3 = QWidget()
         layoutTela3 = QVBoxLayout(self.tela3)
 
-        layoutTela3.setContentsMargins(200, 50, 50, 50)
-
         # Adiciona o cubo 3D
         self.view = gl.GLViewWidget()
         self.view.setCameraPosition(distance=9)
@@ -203,7 +201,7 @@ class MainWindow(QMainWindow):
             color: white;
             padding: 10px;
         """)
-        self.containerGyro.setFixedSize(200, 200)
+        self.containerGyro.setFixedSize(300, 200)
 
         # Adiciona sombra ao containerGyro
         shadow_effect_gyro = QGraphicsDropShadowEffect()
@@ -214,15 +212,15 @@ class MainWindow(QMainWindow):
         layoutContainerGyro = QVBoxLayout(self.containerGyro)
 
         # Cria o QLabel para os dados do Gyro
-        self.labelDadosGyro = QLabel("Accel X:\n\nAccel Y:\n\nAccel Z:")
-        self.labelDadosGyro.setStyleSheet("font-size: 13px;")  # Aumenta a fonte para 16px
+        self.labelDadosGyro = QLabel('<div style="text-align: center; padding: 10px;"><b>Dados Giro</b></div><br>Raw:<br><br>Pitch:<br><br>Yaw: ')
+        self.labelDadosGyro.setStyleSheet("font-size: 15px;")  # Aumenta a fonte para 16px
         layoutContainerGyro.addWidget(self.labelDadosGyro)
 
         # Adiciona o containerGyro ao layout da Tela 3
-        layoutTela3.addWidget(self.containerGyro, alignment=Qt.AlignmentFlag.AlignRight)
-
+        layoutTela3.addWidget(self.containerGyro, alignment=Qt.AlignmentFlag.AlignHorizontal_Mask)
+        
         # Adiciona margens ao layout da Tela 3 para alinhar o containerGyro
-        layoutTela3.setContentsMargins(100, 100, 150, 290)
+        layoutTela3.setContentsMargins(200, 150, 200, 310)
 
         self.stackedWidget.addWidget(self.tela3)
 
@@ -255,7 +253,7 @@ class MainWindow(QMainWindow):
         layoutContainerRadio = QVBoxLayout(self.containerDadosdoRadio)
 
         # Cria o QLabel para os dados do rádio
-        self.labelDadosdoRadio = QLabel("Número de Pacotes:\nRSSI:\nTamanho do Pacote:")
+        self.labelDadosdoRadio = QLabel("<b>Número de Pacotes:<b><br><b>RSSI:<b><br><b>Tamanho do Pacote:<b>")
         layoutContainerRadio.addWidget(self.labelDadosdoRadio)
 
         # Adiciona margens ao layout
@@ -284,6 +282,7 @@ class MainWindow(QMainWindow):
         """)
         self.inputComando.returnPressed.connect(self.enviarComandoSerial)
         layoutComandos.addWidget(self.inputComando)
+
 
         layoutComandos.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
 
