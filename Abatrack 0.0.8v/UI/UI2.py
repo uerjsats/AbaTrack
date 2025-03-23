@@ -12,6 +12,7 @@ from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 from PIL import Image, ImageOps
 import folium
+import csv
 
 # Adicione o diretório 'integracao' ao sys.path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'integracao'))
@@ -242,7 +243,7 @@ class MainWindow(QMainWindow):
             color: white;
             padding: 10px;
         """)
-        self.containerDadosdoRadio.setFixedSize(250, 120)
+        self.containerDadosdoRadio.setFixedSize(250, 140)
 
         # Adiciona sombra ao containerDadosdoRadio
         shadow_effect = QGraphicsDropShadowEffect()
@@ -253,7 +254,8 @@ class MainWindow(QMainWindow):
         layoutContainerRadio = QVBoxLayout(self.containerDadosdoRadio)
 
         # Cria o QLabel para os dados do rádio
-        self.labelDadosdoRadio = QLabel("<b>Número de Pacotes:<b><br><b>RSSI:<b><br><b>Tamanho do Pacote:<b>")
+        self.labelDadosdoRadio = QLabel("<b>Número de Pacotes:<b><br><br><b>RSSI:<b><br><br><b>Tamanho do Pacote:<b>")
+        self.labelDadosdoRadio.setStyleSheet("font-size: 13px;")  # Define o tamanho da fonte
         layoutContainerRadio.addWidget(self.labelDadosdoRadio)
 
         # Adiciona margens ao layout
@@ -275,6 +277,7 @@ class MainWindow(QMainWindow):
                 border: 1px solid #ccc; /* Contorno suave */
                 border-radius: 5px; /* Bordas arredondadas */
                 padding: 5px; /* Espaçamento interno */
+                font-size: 15px;
             }
             QLineEdit:focus {
                 border: 1px solid #63A32E; /* Contorno verde quando focado */
@@ -290,7 +293,7 @@ class MainWindow(QMainWindow):
         
         # Em seguida o label para os dados dos pacotes
         self.labelPacotesBrutos = QLabel("Dados dos pacotes recebidos: ")
-        self.labelPacotesBrutos.setStyleSheet("color: white;")  # Adiciona esta linha
+        self.labelPacotesBrutos.setStyleSheet("color: white; font-size: 15px;")  # Adiciona esta linha
 
         # Layout horizontal para o label dos pacotes
         self.layoutBotoesEPacotes = QHBoxLayout()
@@ -463,6 +466,30 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.mostrarAvisoGrafico("Erro ao salvar gráfico", str(e))
 
+    def salvarDadosCSV(self):
+        try:
+            # Define o caminho e o nome do arquivo CSV
+            now = datetime.now()
+            formatted_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+            default_filename = f"dados_{formatted_time}.csv"
+            save_path = os.path.join(os.getcwd(), default_filename)
+
+            # Salva os dados no formato CSV
+            with open(save_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(["Tempo", "Temperatura", "Pressão", "Altitude"])  # Cabeçalhos
+                for i in range(len(self.repositorio.tempo)):
+                    writer.writerow([
+                        self.repositorio.tempo[i],
+                        self.repositorio.dadosTemperatura[i],
+                        self.repositorio.pressao[i],
+                        self.repositorio.altitude[i]
+                    ])
+
+            self.mostrarAviso("Sucesso", f"Dados salvos em: {save_path}")
+        except Exception as e:
+            self.mostrarAviso("Erro ao salvar dados", str(e))
+
     #Configurações Menu Bar
     def aplicarEstiloMenuBar(self):
         estilo_menu_bar = """
@@ -487,6 +514,22 @@ class MainWindow(QMainWindow):
         QMenuBar::item:selected {
             background-color: #4CAF50; /* Verde mais escuro */
         }
+        QMenu {
+            background-color: #1C1C1C; /* Verde */
+            color: white;
+            border: 1px solid #4CAF50; /* Borda verde escuro */
+            font-size: 14px; /* Tamanho da fonte */
+        }
+        QMenu::item {
+            background-color: transparent;
+            padding: 8px 20px; /* Espaçamento interno */
+            margin: 2px 2px; /* Margem entre os itens */
+            border-radius: 4px; /* Bordas arredondadas */
+        }
+        QMenu::item:selected {
+            background-color: #4CAF50; /* Verde mais escuro */
+            color: white;
+        }
         """
         self.menuBar.setStyleSheet(estilo_menu_bar)
 
@@ -494,9 +537,15 @@ class MainWindow(QMainWindow):
         # Cria o menu Arquivo
         menuArquivo = self.menuBar.addMenu("Arquivo")
 
-        # Adiciona ações ao menu Arquivo
-        acaoSalvar = menuArquivo.addAction("Salvar Dados")
-        acaoSalvar.triggered.connect(self.salvarDados)
+        # Cria o submenu Salvar Dados
+        submenuSalvarDados = menuArquivo.addMenu("Salvar Dados")
+
+        # Adiciona ações ao submenu Salvar Dados
+        acaoSalvarTXT = submenuSalvarDados.addAction("Salvar em TXT")
+        acaoSalvarTXT.triggered.connect(self.salvarDados)
+
+        acaoSalvarCSV = submenuSalvarDados.addAction("Salvar em CSV")
+        acaoSalvarCSV.triggered.connect(self.salvarDadosCSV)
 
         # Cria o submenu Salvar gráficos
         submenuSalvarGraficos = menuArquivo.addMenu("Salvar Gráficos")
@@ -539,6 +588,8 @@ class MainWindow(QMainWindow):
         # Adiciona ações ao menu Ajuda
         acaoSobre = menuAjuda.addAction("Sobre")
         acaoSobre.triggered.connect(self.mostrarSobre)
+
+        self.menuBar.update()
 
     def atualizarSubmenuPorta(self, submenuPorta):
         if submenuPorta is not None:
