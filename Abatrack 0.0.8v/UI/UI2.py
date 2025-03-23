@@ -22,6 +22,7 @@ from dominio.entidades import *
 from integracao.adaptador_arduino import AdaptadorArduino
 from UI.graficosGenericos import GraficoDinamicoGenerico
 from UI.thread_main import ThreadPrincipal
+from folium import Map, Marker
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -340,7 +341,10 @@ class MainWindow(QMainWindow):
         latitude = self.repositorio.latitude[-1]
         longitude = self.repositorio.longitude[-1]
         sats = self.repositorio.sats[-1]
-        self.labelDadosGPS.setText(f"Latitude: {latitude}\n\nLongitude: {longitude}\n\nSats: {sats}")        
+        self.labelDadosGPS.setText(f"Latitude: {latitude}\n\nLongitude: {longitude}\n\nSats: {sats}")
+
+        # Atualiza o mapa offline com as novas coordenadas
+        self.atualizarMapaOffline(latitude, longitude)
 
     def atualizarLabelDadosGiro(self, pacoteGiro):
         # Atualiza a rotação do cubo 3D com base nos dados do sensor MPU6050
@@ -490,6 +494,33 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.mostrarAviso("Erro ao salvar dados", str(e))
 
+    def salvarImagemMapa(self):
+        """
+        Salva uma imagem do mapa em tempo real.
+        """
+        try:
+            # Captura uma imagem do mapa exibido no QWebEngineView
+            screenshot_path = os.path.join(os.getcwd(), "mapa_screenshot.png")
+            self.mapaView.grab().save(screenshot_path)
+            self.mostrarAviso("Sucesso", f"Imagem do mapa salva em: {screenshot_path}")
+        except Exception as e:
+            self.mostrarAviso("Erro ao salvar imagem do mapa", str(e))
+
+    def salvarHTMLMapa(self):
+        """
+        Salva o arquivo HTML do mapa com as alterações.
+        """
+        try:
+            mapa_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mapaatualizado.html')
+            save_path = os.path.join(os.getcwd(), "mapa_atualizado.html")
+            with open(mapa_path, 'r', encoding='utf-8') as original_file:
+                html_content = original_file.read()
+            with open(save_path, 'w', encoding='utf-8') as updated_file:
+                updated_file.write(html_content)
+            self.mostrarAviso("Sucesso", f"HTML do mapa salvo em: {save_path}")
+        except Exception as e:
+            self.mostrarAviso("Erro ao salvar HTML do mapa", str(e))
+
     #Configurações Menu Bar
     def aplicarEstiloMenuBar(self):
         estilo_menu_bar = """
@@ -589,17 +620,36 @@ class MainWindow(QMainWindow):
         acaoSobre = menuAjuda.addAction("Sobre")
         acaoSobre.triggered.connect(self.mostrarSobre)
 
+        # Cria o menu Mapa
+        menuMapa = self.menuBar.addMenu("Mapa")
+
+        # Adiciona ações ao menu Mapa
+        acaoSalvarImagemMapa = menuMapa.addAction("Salvar Imagem do Mapa")
+        acaoSalvarImagemMapa.triggered.connect(self.salvarImagemMapa)
+
+        acaoSalvarHTMLMapa = menuMapa.addAction("Salvar HTML do Mapa")
+        acaoSalvarHTMLMapa.triggered.connect(self.salvarHTMLMapa)
+
+        # Cria o submenu para selecionar mapas offline
+        submenuSelecionarMapa = menuMapa.addMenu("Selecionar Mapa")
+        submenuSelecionarMapa.setObjectName("SelecionarMapa")
+        self.atualizarSubmenuSelecionarMapa(submenuSelecionarMapa)
+
         self.menuBar.update()
 
     def atualizarSubmenuPorta(self, submenuPorta):
+        """
+        Atualiza o submenu de portas COM disponíveis.
+        """
         if submenuPorta is not None:
-            submenuPorta.clear()
-            portas = self.listarPortas()
-            acaoGroupPorta = QActionGroup(self)
-            for porta in portas:
+            submenuPorta.clear()  # Limpa as portas existentes no submenu
+            portas_disponiveis = self.listarPortas()  # Obtém a lista de portas disponíveis
+            acaoGroupPorta = QActionGroup(self)  # Grupo de ações para as portas
+
+            for porta in portas_disponiveis:
                 acaoPorta = submenuPorta.addAction(porta)
                 acaoPorta.setCheckable(True)
-                acaoPorta.setChecked(porta == self.configs.portaArduino)
+                acaoPorta.setChecked(porta == self.configs.portaArduino)  # Marca a porta selecionada
                 acaoPorta.triggered.connect(lambda checked, p=porta: self.selecionarPorta(p))
                 acaoGroupPorta.addAction(acaoPorta)
 
@@ -797,4 +847,59 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+
+    def atualizarMapaOffline(self, latitude, longitude):
+        """
+        Atualiza o mapa offline com as novas coordenadas recebidas.
+        :param latitude: Latitude do satélite.
+        :param longitude: Longitude do satélite.
+        """
+        try:
+            # Cria um novo mapa centrado nas coordenadas recebidas
+            mapa = Map(location=[latitude, longitude], zoom_start=10)
+
+            # Adiciona um marcador na posição atual
+            Marker(location=[latitude, longitude], popup="Posição Atual").add_to(mapa)
+
+            # Salva o mapa atualizado em um arquivo HTML
+            mapa_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mapaatualizado.html')
+            mapa.save(mapa_path)
+
+            # Atualiza o QWebEngineView com o novo mapa
+            self.mapaView.setUrl(QtCore.QUrl.fromLocalFile(mapa_path))
+
+        except Exception as e:
+            self.mostrarAviso("Erro ao atualizar o mapa", str(e))
+
+    def atualizarSubmenuSelecionarMapa(self, submenuSelecionarMapa):
+        """
+        Atualiza o submenu para selecionar mapas offline.
+        """
+        if submenuSelecionarMapa is not None:
+            submenuSelecionarMapa.clear()  # Limpa as opções existentes no submenu
+            mapas_disponiveis = [
+                ("Mapa Teste de Vôo", "mapa.html"),
+                ("Mapa IREC", "mapa2.html"),
+                ("Mapa CubeDesign", "mapa3.html")
+            ]
+            acaoGroupMapa = QActionGroup(self)  # Grupo de ações para os mapas
+
+            for nome, arquivo in mapas_disponiveis:
+                acaoMapa = submenuSelecionarMapa.addAction(nome)
+                acaoMapa.setCheckable(True)
+                acaoMapa.setChecked(arquivo == "mapa.html")  # Define o primeiro mapa como padrão
+                acaoMapa.triggered.connect(lambda checked, f=arquivo: self.selecionarMapaOffline(f))
+                acaoGroupMapa.addAction(acaoMapa)
+
+    def selecionarMapaOffline(self, arquivo_mapa):
+        """
+        Atualiza o mapa offline exibido no QWebEngineView com o arquivo selecionado.
+        :param arquivo_mapa: Nome do arquivo HTML do mapa.
+        """
+        try:
+            mapa_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), arquivo_mapa)
+            self.mapaView.setUrl(QtCore.QUrl.fromLocalFile(mapa_path))
+            self.mostrarToast(f"Mapa {arquivo_mapa} selecionado com sucesso!")
+        except Exception as e:
+            self.mostrarAviso("Erro ao selecionar o mapa", str(e))
 
