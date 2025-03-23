@@ -192,7 +192,13 @@ class MainWindow(QMainWindow):
         layoutTela3.addWidget(self.view)
 
         # Cria o cubo 3D
-        self.cube = gl.GLMeshItem(meshdata=self.create_cube(), smooth=False, color=(0.686, 0.145, 0.733, 1), shader='shaded', drawEdges=True)
+        self.cube = gl.GLMeshItem(
+            meshdata=self.create_cube(),
+            smooth=False,
+            color=(0.75, 0.75, 0.75, 1),  # Cor prata
+            shader='shaded',
+            drawEdges=True
+        )
         self.view.addItem(self.cube)
 
         # Cria o container Gyro
