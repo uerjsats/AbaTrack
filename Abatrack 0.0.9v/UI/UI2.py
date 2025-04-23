@@ -110,40 +110,18 @@ class MainWindow(QMainWindow):
         # Cria um layout horizontal para os gráficos ficarem lado a lado
         layoutGraficos = QHBoxLayout()
 
-        # Converte o tempo de segundos para minutos
-        tempo_em_minutos = [t / 60 for t in self.repositorio.tempo]
-
         # Gráfico Temperatura x Tempo
-        self.graficoDinamico = GraficoDinamicoGenerico(
-            "Temperatura (°C) x Tempo (min)",  # Atualiza o rótulo do eixo
-            "Tempo (min)", 
-            "Temperatura (°C)", 
-            tempo_em_minutos,  # Usa o tempo em minutos
-            self.repositorio.dadosTemperatura
-        )
+        self.graficoDinamico = GraficoDinamicoGenerico("Temperatura (°C) x Tempo (s)", "Tempo (s)", "Temperatura (°C)", self.repositorio.tempo, self.repositorio.dadosTemperatura)
         self.graficoDinamico.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoDinamico)
 
         # Gráfico Pressão x Tempo
-        self.graficoPressaoTemp = GraficoDinamicoGenerico(
-            "Pressão (Pa) x Tempo (min)",  # Atualiza o rótulo do eixo
-            "Tempo (min)", 
-            "Pressão (hPa)", 
-            tempo_em_minutos,  # Usa o tempo em minutos
-            self.repositorio.pressao
-        )
+        self.graficoPressaoTemp = GraficoDinamicoGenerico("Pressão (Pa) x Tempo (s)", "Tempo (s)", "Pressão (hPa)", self.repositorio.tempo, self.repositorio.pressao)
         self.graficoPressaoTemp.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoPressaoTemp)
 
         # Gráfico Altitude x Tempo
-        tempo_altitude_em_minutos = [t / 60 for t in self.repositorio.tempo1]  # Converte outro tempo, se necessário
-        self.graficoAltTemp = GraficoDinamicoGenerico(
-            "Altitude (m) x Tempo (min)",  # Atualiza o rótulo do eixo
-            "Tempo (min)", 
-            "Altitude (m)", 
-            tempo_altitude_em_minutos,  # Usa o tempo em minutos
-            self.repositorio.altitude
-        )
+        self.graficoAltTemp = GraficoDinamicoGenerico("Altitude (m) x Tempo (s)", "Tempo (s)", "Altitude (m)", self.repositorio.tempo1, self.repositorio.altitude)
         self.graficoAltTemp.setFixedSize(500, 300)
         layoutGraficos.addWidget(self.graficoAltTemp)
 
