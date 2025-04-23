@@ -338,15 +338,17 @@ class MainWindow(QMainWindow):
 
     def atualizarLabelDadosdoRadio(self, numeroDePacotes):
         if self.repositorio.numerodepacotes:  
-            ultimo_pacote = self.repositorio.numerodepacotes[-1]
-            rssi = self.repositorio.RSSI[-1]
-            tamanho_pacote = self.repositorio.tamanhopacote[-1]
-            self.labelDadosdoRadio.setText("Número de Pacotes: " + str(ultimo_pacote) + "\nRSSI: " + str(rssi) + "dBm"+"\nTamanho do Pacote: " + str(tamanho_pacote)+" bytes")
+            ultimo_pacote = int(self.repositorio.numerodepacotes[-1])
+            rssi = int(self.repositorio.RSSI[-1])
+            tamanho_pacote = int(self.repositorio.tamanhopacote[-1])
+            self.labelDadosdoRadio.setText(
+                f"Número de Pacotes: {ultimo_pacote}\nRSSI: {rssi} dBm\nTamanho do Pacote: {tamanho_pacote} bytes"
+            )
 
     def atualizarLabelDadosGPS(self, pacoteDadosGPS):
         latitude = self.repositorio.latitude[-1]
         longitude = self.repositorio.longitude[-1]
-        sats = self.repositorio.sats[-1]
+        sats = int(self.repositorio.sats[-1])
         self.labelDadosGPS.setText(f"Latitude: {latitude}\n\nLongitude: {longitude}\n\nSats: {sats}")
 
         # Atualiza o mapa offline com as novas coordenadas
