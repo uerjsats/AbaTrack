@@ -71,5 +71,15 @@
         radius: 2000          // Raio do círculo em metros (2km)
     }).addTo(map);
 
+
+var marker;
+function atualizarPosicao(lat, lng) {
+    if (marker) {
+        marker.setLatLng([lat, lng]);
+    } else {
+        marker = L.marker([lat, lng]).addTo(map);
+    }
+    map.setView([lat, lng]);
+}
 </script>
 </html>

@@ -881,24 +881,11 @@ class MainWindow(QMainWindow):
 
     def atualizarMapaOffline(self, latitude, longitude):
         """
-        Atualiza o mapa offline com as novas coordenadas recebidas.
-        :param latitude: Latitude do satélite.
-        :param longitude: Longitude do satélite.
+        Atualiza o marcador no mapa offline já carregado.
         """
         try:
-            # Cria um novo mapa centrado nas coordenadas recebidas
-            mapa = Map(location=[latitude, longitude], zoom_start=10)
-
-            # Adiciona um marcador na posição atual
-            Marker(location=[latitude, longitude], popup="Posição Atual").add_to(mapa)
-
-            # Salva o mapa atualizado em um arquivo HTML
-            mapa_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mapaatualizado.html')
-            mapa.save(mapa_path)
-
-            # Atualiza o QWebEngineView com o novo mapa
-            self.mapaView.setUrl(QtCore.QUrl.fromLocalFile(mapa_path))
-
+            js = f"atualizarPosicao({latitude}, {longitude});"
+            self.mapaView.page().runJavaScript(js)
         except Exception as e:
             self.mostrarAviso("Erro ao atualizar o mapa", str(e))
 

@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<script>
+function atualizarPosicao(lat, lng) {
+    if (typeof marker !== "undefined" && marker !== null) {
+        marker.setLatLng([lat, lng]);
+    } else {
+        marker = L.marker([lat, lng]).addTo(map);
+    }
+    map.setView([lat, lng]);
+}
+</script>
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
