@@ -24,6 +24,7 @@ from integracao.adaptador_arduino import AdaptadorArduino
 from UI.graficosGenericos import GraficoDinamicoGenerico
 from UI.thread_main import ThreadPrincipal
 from folium import Map, Marker
+from UI.tela_serial import TelaSerial
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -580,6 +581,9 @@ class MainWindow(QMainWindow):
         # Cria o menu Arquivo
         menuArquivo = self.menuBar.addMenu("Arquivo")
 
+        acaoMonitorSerial = menuArquivo.addAction("Abrir Monitor Serial")
+        acaoMonitorSerial.triggered.connect(self.abrirMonitorSerial)
+
         # Cria o submenu Salvar Dados
         submenuSalvarDados = menuArquivo.addMenu("Salvar Dados")
 
@@ -920,4 +924,16 @@ class MainWindow(QMainWindow):
             self.mostrarToast(f"Mapa {arquivo_mapa} selecionado com sucesso!")
         except Exception as e:
             self.mostrarAviso("Erro ao selecionar o mapa", str(e))
+
+    def abrirMonitorSerial(self):
+        try:
+            style = self.styleSheet()
+            if style:
+                self.tela_serial = TelaSerial(None, style_sheet=style)
+            else:
+                # não tenta ler background do palette (pode causar erro em algumas configurações)
+                self.tela_serial = TelaSerial(None)
+            self.tela_serial.show()
+        except Exception as e:
+            self.mostrarAviso("Erro", str(e))
 
