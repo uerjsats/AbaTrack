@@ -93,7 +93,7 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 
 | Dado                    | Unidade / Descrição       |
 |-------------------------|---------------------------|
-| Temperatura             |°C  s (segundos)           |
+| Temperatura             |°C                         |
 | Tempo                   | s (segundos)              |
 | Umidade                 | %                         |
 | Pressão                 | Pa (Pascal)               |
