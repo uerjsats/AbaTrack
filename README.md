@@ -91,13 +91,13 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 
 ## 📡 Dados Recebidos
 
-| Dado                    | Unidade / Descrição        |
+| Dado                    | Unidade / Descrição       |
 |-------------------------|---------------------------|
+| Temperatura             |°C  s (segundos)           |
 | Tempo                   | s (segundos)              |
-| Temperatura             | °C                        |
 | Umidade                 | %                         |
-| Altitude                | m (metros)                |
 | Pressão                 | Pa (Pascal)               |
+| Altitude                | m (metros)                |
 | Latitude                | graus decimais            |
 | Longitude               | graus decimais            |
 | Número de Satélites     | quantidade                |
@@ -109,7 +109,7 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 | Tensão                  | V                         |
 | Corrente                | A                         |
 | Número de Pacotes       | quantidade                |
-| RSSI                   | dBm (sinal do rádio)      |
+| RSSI                    | dBm (sinal do rádio)      |
 | Tamanho do Pacote       | bytes                     |
 
 OBS: o pacote de dados tem que estar com as informações nessa ordem.
