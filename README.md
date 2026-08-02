@@ -11,7 +11,8 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 - Gráfico **Pressão × Tempo** (dinâmico)
 - Gráfico **Altitude × Tempo** (dinâmico)
   
-<img width="1919" height="1008" alt="image" src="https://github.com/user-attachments/assets/793f8e9f-f9a8-44d8-88ee-541a8f4268c7" />
+<img width="1532" height="812" alt="image" src="https://github.com/user-attachments/assets/ff906760-d379-4182-b0d2-46737f2e5c93" />
+
 
 
 ### Tela 2 — GPS e Mapa
@@ -22,7 +23,8 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
   - IREC  
   - CubeDesign
  
-<img width="1919" height="1013" alt="image" src="https://github.com/user-attachments/assets/7c86830f-4e7f-4866-abf3-7c3e6a1c4af0" />
+<img width="1523" height="808" alt="image" src="https://github.com/user-attachments/assets/de9cfa1e-eafc-4ae0-89c9-e69cafac81fd" />
+
 
 ### Tela 3 — Visualização 3D
 - Cubo 3D que rotaciona conforme dados do giroscópio:
@@ -31,7 +33,8 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
   - Yaw
 - Visualização dos dados de giro em tempo real
 
-<img width="1916" height="1014" alt="image" src="https://github.com/user-attachments/assets/e06219df-df33-48fb-9233-6f2fb685c8b6" />
+<img width="1527" height="811" alt="image" src="https://github.com/user-attachments/assets/dc2a018c-b629-4722-a29a-4435f60220d0" />
+
 
 ## 📡 Comunicação Serial
 
