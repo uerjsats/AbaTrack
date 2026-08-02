@@ -1,0 +1,16 @@
+# Ambiente Virtual
+.venv/
+venv/
+env/
+
+# Compilação e Executáveis
+build/
+dist/
+*.spec
+
+# Cache do Python
+cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
