@@ -22,7 +22,7 @@ def processarPacoteDeDados(pacote):
     partes_completas = [float(parte) if parte.strip() else 0.0 for parte in partes]
     
     # Preenche com 0.0 até o tamanho esperado (14 índices, por exemplo)
-    while len(partes_completas) < 14:  # Ajuste o número 14 para o tamanho esperado do pacote
+    while len(partes_completas) < 18:  # Ajuste o número para o tamanho esperado do pacote
         partes_completas.append(0.0)
     
     return partes_completas
