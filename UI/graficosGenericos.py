@@ -9,29 +9,31 @@ import mplcursors
 class GraficoDinamicoGenerico(QWidget):
     def __init__(self, titulo: str, titulo_x: str, titulo_y: str, listaDadosX: list, listaDadosY: list):
         super().__init__()
-        # PASSAGEM POR CÓPIA PRA NÃO DAR MERDA NO REPOSITÓRIO
         self.y_data = listaDadosY.copy()
         self.x_data = listaDadosX.copy()
 
         self.titulo_x = titulo_x
         self.titulo_y = titulo_y
         self.titulo = titulo
-        self.erro_exibido = False  # Variável de controle para rastrear se o erro já foi exibido
-        self.nao_mostrar_erro = False  # Variável de controle para "Não mostrar novamente"
+        self.erro_exibido = False
+        self.nao_mostrar_erro = False
 
         if len(listaDadosY) != len(listaDadosX):
             print(f"Aviso: erro nas quantidades de dados do grafico {titulo_x} x {titulo_y}.")
         self.janelaVisivel = 10
 
-        # Criando figuras e eixos do Matplotlib
+        # Criando a figura limpa
         self.figure, self.ax = plt.subplots()
         self.ax.set_title(titulo, fontsize=11, fontweight='bold', color="#D3D3D3")
         self.ax.grid(True, linestyle="--", alpha=0.7)
         self.ax.set_facecolor("#1C1C1C")
         self.figure.patch.set_facecolor("#1C1C1C")
 
-        self.ax.tick_params(axis='x', colors='#D3D3D3')  
-        self.ax.tick_params(axis='y', colors='#D3D3D3')
+        # Margens internas precisas do Matplotlib: aproveita bem o espaço sem cortar rótulos
+        self.figure.subplots_adjust(left=0.15, right=0.95, top=0.88, bottom=0.18)
+
+        self.ax.tick_params(axis='x', colors='#D3D3D3', labelsize=9)  
+        self.ax.tick_params(axis='y', colors='#D3D3D3', labelsize=9)
 
         self.ax.spines["left"].set_color("#D3D3D3")
         self.ax.spines["bottom"].set_color("#D3D3D3")
@@ -42,19 +44,22 @@ class GraficoDinamicoGenerico(QWidget):
         
         self.line, = self.ax.plot(self.x_data, self.y_data, marker='o', linestyle='-', color='green', label="Valores")
 
-        # Tooltips
         self.cursor = mplcursors.cursor(self.line, hover=True)
         self.cursor.connect("add", self.show_tooltip)
 
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.canvas)
-        self.setLayout(layout)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.figure.canvas.draw_idle()
 
     def atualizarGrafico(self, novoDadoX: float, novoDadoY: float):
         if novoDadoX is not None and novoDadoY is not None:
             try:
-                self.y_data.append(novoDadoY)
                 self.x_data.append(novoDadoX)
+                self.y_data.append(novoDadoY)
 
                 self.line.set_xdata(self.x_data)
                 self.line.set_ydata(self.y_data)
