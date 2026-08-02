@@ -1,7 +1,7 @@
 # Abatrack — Software de Telemetria da UERJ SATS
 O Abatrack é um software de telemetria desenvolvido pela equipe de Computador de Bordo da UERJ SATS para visualização em tempo real dos dados transmitidos por rádio durante missões de nanossatélites.
 
- 🚀 **Funcionalidades — AbaTrack v1.0.10**
+ 🚀 **Funcionalidades — AbaTrack v1.0.11**
  ---
 
 ## 📊 Visualização de Dados em Tempo Real
