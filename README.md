@@ -19,9 +19,9 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 - Visualização de dados GPS (latitude, longitude, número de satélites)
 - Mapa interativo offline com marcador de posição em tempo real
 - Múltiplos mapas disponíveis:
-  - Teste de Voo  
-  - IREC  
-  - CubeDesign
+  - Teste de Voo  2025
+  - IREC  2025
+  - CubeDesign (INPE)
  
 <img width="1523" height="808" alt="image" src="https://github.com/user-attachments/assets/de9cfa1e-eafc-4ae0-89c9-e69cafac81fd" />
 
