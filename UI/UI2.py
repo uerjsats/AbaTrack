@@ -526,8 +526,6 @@ class MainWindow(QMainWindow):
     path_abatrack = os.path.join(os.path.dirname(__file__), '..')
 
     menuArquivo = self.menuBar.addMenu('Arquivo')
-    acaoMonitorSerial = menuArquivo.addAction('Abrir Monitor Serial')
-    acaoMonitorSerial.triggered.connect(self.abrirMonitorSerial)
 
     submenuSalvarDados = menuArquivo.addMenu('Salvar Dados')
     acaoSalvarTXT = submenuSalvarDados.addAction('Salvar em TXT')
@@ -595,6 +593,9 @@ class MainWindow(QMainWindow):
     acaoDesconectar = self.menuConfiguracoes.addAction('Desconectar')
     acaoDesconectar.triggered.connect(self.pressionarDesconectar)
 
+    acaoMonitorSerial = self.menuConfiguracoes.addAction('Abrir Monitor Serial')
+    acaoMonitorSerial.triggered.connect(self.abrirMonitorSerial)
+
     menuMapa = self.menuBar.addMenu('Mapa')
     acaoSalvarImagemMapa = menuMapa.addAction('Salvar Imagem do Mapa')
     acaoSalvarImagemMapa.triggered.connect(self.salvarImagemMapa)
@@ -659,7 +660,7 @@ class MainWindow(QMainWindow):
     QMessageBox.about(
         self,
         'Sobre',
-        'AbaTrack 1.1.11v\nDesenvolvido pelos membros da UERJ Sats: Thiago'
+        'AbaTrack 1.1.0v\nDesenvolvido pelos membros da UERJ Sats: Thiago'
         ' Martins e Kataryne Cunha.\nQt: 5.15.2 PyQt5: 5.15.11',
     )
 
@@ -820,10 +821,10 @@ class MainWindow(QMainWindow):
     if submenuSelecionarMapa is not None:
       submenuSelecionarMapa.clear()
       mapas_disponiveis = [
-          ('Mapa Teste de Vôo', 'mapa.html'),
+          ('Mapa LASC', 'mapa4.html'),
+          ('Mapa CubeDesign INPE', 'mapa3.html'),
           ('Mapa IREC', 'mapa2.html'),
-          ('Mapa CubeDesign', 'mapa3.html'),
-          ('Mapa LASC', 'mapa4.html')
+          ('Mapa Teste de Vôo', 'mapa.html')
       ]
       acaoGroupMapa = QActionGroup(self)
       for nome, arquivo in mapas_disponiveis:
