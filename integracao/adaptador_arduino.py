@@ -15,6 +15,8 @@ class AdaptadorArduino(QObject):
         self.conexao = None
 
     def conectar(self):
+        if not self.configs.portaArduino:
+            raise serial.SerialException("Nenhuma porta selecionada.")
         try:
             self.conexao = serial.Serial(self.configs.portaArduino, self.configs.baudRate, timeout=self.timeout)
             print(f"Conexão estabelecida na porta {self.configs.portaArduino} com baud rate {self.configs.baudRate}")
@@ -39,7 +41,7 @@ class AdaptadorArduino(QObject):
             print(erro_msg)
             self.erroDecodificacao.emit(erro_msg)
             return None
-        except serial.SerialException as e:
+        except (serial.SerialException, OSError) as e:
             erro_msg = f"Erro ao ler a serial: {e}"
             print(erro_msg)
             self.erroSerial.emit(erro_msg)

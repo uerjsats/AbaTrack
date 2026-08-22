@@ -76,6 +76,8 @@ class MainWindow(QMainWindow):
     self.adaptador = AdaptadorArduino(self.repositorio, self.configs)
     self.thread = None
     self.dadosRecebidos = False
+    self.avisoDesconexaoMostrado = False
+    self.urlServidorAtual = 'http://www.missao.atlas.com'
 
     # Configuração das Barras de Menu
     self.menuBar = self.menuBar()
@@ -127,6 +129,16 @@ class MainWindow(QMainWindow):
         lambda: self.stackedWidget.setCurrentIndex(2)
     )
     self.layoutBotoesNavegacao.addWidget(self.botaoTela3)
+
+    self.botaoTelaWeb = QPushButton('', self)
+    self.botaoTelaWeb.setFixedSize(45, 25)
+    self.botaoTelaWeb.setIcon(
+            QIcon(os.path.join(base_path, 'imgs', 'icon_tela_web.png'))
+        )
+    self.botaoTelaWeb.clicked.connect(
+        lambda: self.stackedWidget.setCurrentIndex(3)
+    )
+    self.layoutBotoesNavegacao.addWidget(self.botaoTelaWeb)
 
     self.layoutPrincipal.addLayout(self.layoutBotoesNavegacao)
 
@@ -288,6 +300,17 @@ class MainWindow(QMainWindow):
     layoutTela3.addWidget(self.containerGyro, stretch=1)
     self.stackedWidget.addWidget(self.tela3)
 
+    # ------------------- TELA 4 WEB (Servidor Wi-Fi) -------------------
+    self.telaWeb = QWidget()
+    layoutTelaWeb = QVBoxLayout(self.telaWeb)
+    layoutTelaWeb.setContentsMargins(10, 10, 10, 10)
+
+    self.webView = QWebEngineView()
+    self.webView.setUrl(QtCore.QUrl('http://www.missao.atlas.com'))
+    layoutTelaWeb.addWidget(self.webView)
+
+    self.stackedWidget.addWidget(self.telaWeb)
+
     # Adiciona o QStackedWidget no layout principal da janela
     self.layoutPrincipal.addWidget(self.stackedWidget)
 
@@ -307,6 +330,7 @@ class MainWindow(QMainWindow):
             'Erro de decodificação', 'Erro ao decodificar dados'
         )
     )
+    self.adaptador.erroSerial.connect(self.tratarErroSerial)
 
   def centralizarNaTela(self):
     qr = self.frameGeometry()
@@ -391,14 +415,29 @@ class MainWindow(QMainWindow):
           'Desconexão', 'Nenhum arduino foi conectado ainda.'
       )
 
+  def tratarErroSerial(self, mensagem):
+    if self.avisoDesconexaoMostrado:
+        return  
+    self.avisoDesconexaoMostrado = True
+
+    if self.thread is not None:
+        self.thread.stop()
+    self.adaptador.desconectar()
+
+    self.mostrarAvisoSemCheckbox(
+        'Arduino desconectado',
+        'A conexão com o Arduino foi perdida. Verifique o cabo USB.'
+    )
+
   def pressionarConectar(self):
     try:
-      self.adaptador.conectar()
-      self.iniciarLeitura()
-      self.mostrarToast('Conectado com sucesso!')
+        self.adaptador.conectar()
+        self.iniciarLeitura()
+        self.avisoDesconexaoMostrado = False   # <- adicionar aqui
+        self.mostrarToast('Conectado com sucesso!')
     except Exception as e:
-      self.mostrarAviso('Erro ao conectar', str(e))
-      self.pressionarDesconectar()
+        self.mostrarAviso('Erro ao conectar', str(e))
+        self.pressionarDesconectar()
 
   def mostrarToast(self, mensagem):
     toast = QLabel(mensagem, self)
@@ -475,10 +514,10 @@ class MainWindow(QMainWindow):
   def aplicarEstiloMenuBar(self):
     estilo_menu_bar = """
         QMenuBar { background-color: #63A32E; color: white; font-size: 13px; }
-        QMenuBar::item { background-color: #63A32E; color: white; font-size: 16px; padding: 10px 15px; }
+        QMenuBar::item { background-color: #63A32E; color: white; font-size: 16px; padding: 14px 10px; }
         QMenuBar::item:selected { background-color: #4CAF50; }
         QMenu { background-color: #1C1C1C; color: white; border: 1px solid #4CAF50; font-size: 14px; }
-        QMenu::item { background-color: transparent; padding: 8px 20px; }
+        QMenu::item { background-color: transparent; padding: 8px 20px;  }
         QMenu::item:selected { background-color: #4CAF50; color: white; }
         """
     self.menuBar.setStyleSheet(estilo_menu_bar)
@@ -556,10 +595,6 @@ class MainWindow(QMainWindow):
     acaoDesconectar = self.menuConfiguracoes.addAction('Desconectar')
     acaoDesconectar.triggered.connect(self.pressionarDesconectar)
 
-    menuAjuda = self.menuBar.addMenu('Ajuda')
-    acaoSobre = menuAjuda.addAction('Sobre')
-    acaoSobre.triggered.connect(self.mostrarSobre)
-
     menuMapa = self.menuBar.addMenu('Mapa')
     acaoSalvarImagemMapa = menuMapa.addAction('Salvar Imagem do Mapa')
     acaoSalvarImagemMapa.triggered.connect(self.salvarImagemMapa)
@@ -569,6 +604,15 @@ class MainWindow(QMainWindow):
     submenuSelecionarMapa = menuMapa.addMenu('Selecionar Mapa')
     submenuSelecionarMapa.setObjectName('SelecionarMapa')
     self.atualizarSubmenuSelecionarMapa(submenuSelecionarMapa)
+
+    menuWeb = self.menuBar.addMenu('Web')
+    submenuSelecionarServidor = menuWeb.addMenu('Selecionar servidor')
+    submenuSelecionarServidor.setObjectName('SelecionarServidor')
+    self.atualizarSubmenuSelecionarServidor(submenuSelecionarServidor)
+
+    menuAjuda = self.menuBar.addMenu('Ajuda')
+    acaoSobre = menuAjuda.addAction('Sobre')
+    acaoSobre.triggered.connect(self.mostrarSobre)
 
     self.menuBar.update()
 
@@ -615,7 +659,7 @@ class MainWindow(QMainWindow):
     QMessageBox.about(
         self,
         'Sobre',
-        'AbaTrack 1.0.11v\nDesenvolvido pelos membros da UERJ Sats: Thiago'
+        'AbaTrack 1.1.11v\nDesenvolvido pelos membros da UERJ Sats: Thiago'
         ' Martins e Kataryne Cunha.\nQt: 5.15.2 PyQt5: 5.15.11',
     )
 
@@ -779,6 +823,7 @@ class MainWindow(QMainWindow):
           ('Mapa Teste de Vôo', 'mapa.html'),
           ('Mapa IREC', 'mapa2.html'),
           ('Mapa CubeDesign', 'mapa3.html'),
+          ('Mapa LASC', 'mapa4.html')
       ]
       acaoGroupMapa = QActionGroup(self)
       for nome, arquivo in mapas_disponiveis:
@@ -790,6 +835,23 @@ class MainWindow(QMainWindow):
         )
         acaoGroupMapa.addAction(acaoMapa)
 
+  def atualizarSubmenuSelecionarServidor(self, submenuSelecionarServidor):
+    if submenuSelecionarServidor is not None:
+      submenuSelecionarServidor.clear()
+      servidores_disponiveis = [
+          ('LASC 26', 'http://www.missao.atlas.com'),
+          ('CubeDesign 2026', 'https://cubedesign.unsam.edu.ar/')
+      ]
+      acaoGroupServidor = QActionGroup(self)
+      for nome, url in servidores_disponiveis:
+        acaoServidor = submenuSelecionarServidor.addAction(nome)
+        acaoServidor.setCheckable(True)
+        acaoServidor.setChecked(url == self.urlServidorAtual)
+        acaoServidor.triggered.connect(
+            lambda checked, u=url: self.selecionarServidorWeb(u)
+        )
+        acaoGroupServidor.addAction(acaoServidor)
+
   def selecionarMapaOffline(self, arquivo_mapa):
     try:
       mapa_path = os.path.join(
@@ -799,6 +861,24 @@ class MainWindow(QMainWindow):
       self.mostrarToast(f'Mapa {arquivo_mapa} selecionado com sucesso!')
     except Exception as e:
       self.mostrarAviso('Erro ao selecionar o mapa', str(e))
+
+  def selecionarServidorWeb(self, url_servidor):
+    try:
+      self.urlServidorAtual = url_servidor
+      self.abrirUrlServidor(url_servidor)
+    except Exception as e:
+      self.mostrarAviso('Erro ao selecionar servidor', str(e))
+
+  def abrirUrlServidor(self, url_servidor=None):
+    try:
+      if url_servidor is None:
+        url_servidor = self.urlServidorAtual
+      self.urlServidorAtual = url_servidor
+      self.webView.setUrl(QtCore.QUrl(url_servidor))
+      self.stackedWidget.setCurrentIndex(3)
+      self.mostrarToast(f'Abrindo {url_servidor} no AbaTrack')
+    except Exception as e:
+      self.mostrarAviso('Erro ao abrir URL do servidor', str(e))
 
   def abrirMonitorSerial(self):
     try:

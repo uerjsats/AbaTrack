@@ -48,10 +48,10 @@
             var map_32cf099323df2b09bf338f0eb4c3a9a5 = L.map(
                 "map_32cf099323df2b09bf338f0eb4c3a9a5",
                 {
-                    center: [-22.872847, -43.365326],
+                    center: [-21.942754231838478, -48.95408610429866],
                     crs: L.CRS.EPSG3857,
                     ...{
-  "zoom": 10,
+  "zoom": 15,
   "zoomControl": true,
   "preferCanvas": false,
 }
@@ -84,7 +84,7 @@
         
     
             var marker_5c491445faf29d8f901462640f7c28fb = L.marker(
-                [-22.872847, -43.365326],
+                [-21.942754231838478, -48.95408610429866],
                 {
 }
             ).addTo(map_32cf099323df2b09bf338f0eb4c3a9a5);
@@ -103,8 +103,28 @@
 
         marker_5c491445faf29d8f901462640f7c28fb.bindPopup(popup_6b415e272ec7a3be727c9d91bdc58216)
         ;
+    
+    var launchPadCoords = [-21.942754231838478, -48.95408610429866];
 
-        
+    // Off-nominal Recovery Area - Verde (Raio de 1100m)
+    var offNominalCircle = L.circle(launchPadCoords, {
+        color: "#00FF00",       // Borda verde
+        fillColor: "#00FF00",   // Preenchimento verde
+        fillOpacity: 0.15,
+        weight: 2,
+        radius: 1100            // 2200m de diâmetro / 2
+    }).addTo(map_32cf099323df2b09bf338f0eb4c3a9a5);
+    offNominalCircle.bindPopup("<b>Off-nominal Recovery Area</b><br>Diâmetro: 2200m (Raio: 1100m)");
+
+    // Nominal Recovery Area - Amarelo (Raio de 800m)
+    var nominalCircle = L.circle(launchPadCoords, {
+        color: "#FFFF00",       // Borda amarela
+        fillColor: "#FFFF00",   // Preenchimento amarelo
+        fillOpacity: 0.2,
+     weight: 2,
+        radius: 800             // 1600m de diâmetro / 2
+    }).addTo(map_32cf099323df2b09bf338f0eb4c3a9a5);
+    nominalCircle.bindPopup("<b>Nominal Recovery Area</b><br>Diâmetro: 1600m (Raio: 800m)");       
     
 </script>
 </html>
