@@ -3,16 +3,16 @@ import sys
 
 # Lista de pacotes que devem ser instalados via pip
 PACKAGES = [
-    "PyQt5",
-    "PyQtWebEngine",
-    "folium",
-    "numpy",
-    "Pillow",
-    "pyqtgraph",
-    "PyOpenGL",
-    "pyserial",
-    "matplotlib",
-    "mplcursors",
+    "PyQt5==5.15.11",
+    "PyQtWebEngine==5.15.7",
+    "folium==0.19.5",
+    "numpy==2.5.3",
+    "Pillow==11.1.0",
+    "pyqtgraph==0.13.7",
+    "PyOpenGL==3.1.9",
+    "pyserial==3.5",
+    "matplotlib==3.10.0",
+    "mplcursors==0.6",
 ]
 
 def install_packages():
