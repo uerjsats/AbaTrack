@@ -22,7 +22,7 @@ def processarPacoteDeDados(pacote):
     partes_completas = [float(parte) if parte.strip() else 0.0 for parte in partes]
     
     # Preenche com 0.0 até o tamanho esperado (14 índices, por exemplo)
-    while len(partes_completas) < 18:  # Ajuste o número para o tamanho esperado do pacote
+    while len(partes_completas) < 19:  # Ajuste o número para o tamanho esperado do pacote
         partes_completas.append(0.0)
     
     return partes_completas
@@ -48,7 +48,7 @@ def salvarDadosTXT(repositorio: RepositorioTelemetria):
         file.write("-------------------------------\n")
 
         for pacote in repositorio.pacotesDados:
-            file.write(f"tempo:{pacote[0]}s  temperatura satélite:{pacote[1]}°C   umidade:{pacote[2]}%  pressão:{pacote[4]}Pa  altitude:{pacote[3]}m latitude:{pacote[5]} longitude:{pacote[6]}  n° de sats:{pacote[7]}  giro x:{pacote[8]}  giro y:{pacote[9]}  giro z:{pacote[10]} temperatura bateria 1:{pacote[11]}°C temperatura bateria 2:{pacote[12]}°C tensão:{pacote[13]}V corrente:{pacote[14]}A n° de pacotes:{pacote[15]}  RSSI:{pacote[16]} dBm  tamanho do pacote:{pacote[17]}\n")
+            file.write(f"tempo:{pacote[0]}s  temperatura satélite:{pacote[1]}°C   umidade:{pacote[2]}%  pressão:{pacote[4]}Pa  altitude:{pacote[3]}m latitude:{pacote[5]} longitude:{pacote[6]}  n° de sats:{pacote[7]}  giro x:{pacote[8]}  giro y:{pacote[9]}  giro z:{pacote[10]} ângulo LDR:{pacote[11]}° temperatura bateria 1:{pacote[12]}°C temperatura bateria 2:{pacote[13]}°C tensão:{pacote[14]}V corrente:{pacote[15]}A n° de pacotes:{pacote[16]}  RSSI:{pacote[17]} dBm  tamanho do pacote:{pacote[18]}\n")
     print("Histórico salvo no TXT")
 
 

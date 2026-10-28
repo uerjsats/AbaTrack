@@ -32,15 +32,22 @@ class AdaptadorArduino(QObject):
         if not self.conexao or not self.conexao.is_open:
             print("Erro: conexão da serial não aberta.")
             return None
+
         try:
-            linha = self.conexao.readline().decode("utf-8").strip()
-            print(linha)
+            dados = self.conexao.readline()
+
+            if not dados:
+                return None
+
+            # Decodifica apenas o que for texto válido.
+            # Bytes binários do JPEG que não forem UTF-8 são ignorados.
+            linha = dados.decode("utf-8", errors="ignore").strip()
+
+            if linha:
+                print(linha)
+
             return linha
-        except UnicodeDecodeError as e:
-            erro_msg = "Erro em formato de dados ou baud rate errada"
-            print(erro_msg)
-            self.erroDecodificacao.emit(erro_msg)
-            return None
+
         except (serial.SerialException, OSError) as e:
             erro_msg = f"Erro ao ler a serial: {e}"
             print(erro_msg)

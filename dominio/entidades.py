@@ -18,6 +18,7 @@ class RepositorioTelemetria:
         self.roll = []
         self.pitch = []
         self.yaw = []
+        self.anguloldr = []
         self.tempbateria1 = []
         self.tempbateria2 = []
         self.voltage = []

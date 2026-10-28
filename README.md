@@ -31,6 +31,7 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
   - Roll
   - Pitch
   - Yaw
+- Ângulo do LDR exibido junto aos dados de giro
 - Visualização dos dados de giro em tempo real
 
 <img width="1527" height="811" alt="image" src="https://github.com/user-attachments/assets/dc2a018c-b629-4722-a29a-4435f60220d0" />
@@ -78,7 +79,7 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 - Tamanho dos pacotes
 
 ### Dados Brutos
-- Visualização dos 18 campos de dados recebidos em tempo real
+- Visualização dos 19 campos de dados recebidos em tempo real
 
 ---
 
@@ -94,28 +95,29 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 
 ## 📡 Dados Recebidos
 
-| Dado                    | Unidade / Descrição       |
-|-------------------------|---------------------------|
-| Tempo                   |s (segundos)               |
-| Temperatura             |°C                         |
-| Umidade                 | %                         |
-| Altitude                | m (metros)                |
-| Pressão                 | Pa (Pascal)               |
-| Latitude                | graus decimais            |
-| Longitude               | graus decimais            |
-| Número de Satélites     | quantidade                |
-| Roll (Giro X)           | graus                     |
-| Pitch (Giro Y)          | graus                     |
-| Yaw (Giro Z)            | graus                     |
-| Temperatura Bateria 1   | °C                        |
-| Temperatura Bateria 2   | °C                        |
-| Tensão                  | V                         |
-| Corrente                | A                         |
-| Número de Pacotes       | quantidade                |
-| RSSI                    | dBm (sinal do rádio)      |
-| Tamanho do Pacote       | bytes                     |
+| Posição | Dado                    | Unidade / Descrição       |
+|---------|-------------------------|---------------------------|
+| 0       | Tempo                   | s (segundos)              |
+| 1       | Temperatura             | °C                        |
+| 2       | Umidade                 | %                         |
+| 3       | Altitude                | m (metros)                |
+| 4       | Pressão                 | Pa (Pascal)               |
+| 5       | Latitude                | graus decimais            |
+| 6       | Longitude               | graus decimais            |
+| 7       | Número de Satélites     | quantidade                |
+| 8       | Roll (Giro X)           | graus                     |
+| 9       | Pitch (Giro Y)          | graus                     |
+| 10      | Yaw (Giro Z)            | graus                     |
+| 11      | Ângulo LDR              | graus                     |
+| 12      | Temperatura Bateria 1   | °C                        |
+| 13      | Temperatura Bateria 2   | °C                        |
+| 14      | Tensão                  | V                         |
+| 15      | Corrente                | A                         |
+| 16      | Número de Pacotes       | quantidade                |
+| 17      | RSSI                    | dBm (sinal do rádio)      |
+| 18      | Tamanho do Pacote       | bytes                     |
 
-OBS: o pacote de dados tem que estar com as informações nessa ordem.
+OBS: o pacote de dados tem **19 campos separados por `:`** e tem que estar com as informações nessa ordem (posição 0 a 18).
 
 ## ⚙️ Como Usar
 

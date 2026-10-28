@@ -12,7 +12,7 @@ class ThreadPrincipal(QThread):
     ultimosSubdadosPressAlt = pyqtSignal(float, float)
     dadosdoRadio = pyqtSignal(int, int, int)
     pacoteDadosGPS = pyqtSignal(float,float,int)
-    pacoteGiro = pyqtSignal(float,float,float)
+    pacoteGiro = pyqtSignal(float,float,float,float)
     pacoteUmidade = pyqtSignal(float)   
 
     def __init__(self, adaptador: AdaptadorArduino):
@@ -47,13 +47,14 @@ class ThreadPrincipal(QThread):
                         filtraSubdado(self.repositorio.roll, 8, self.repositorio)
                         filtraSubdado(self.repositorio.pitch, 9, self.repositorio)
                         filtraSubdado(self.repositorio.yaw, 10, self.repositorio)
-                        filtraSubdado(self.repositorio.tempbateria1, 11, self.repositorio)
-                        filtraSubdado(self.repositorio.tempbateria2, 12, self.repositorio)
-                        filtraSubdado(self.repositorio.voltage, 13, self.repositorio)
-                        filtraSubdado(self.repositorio.current, 14, self.repositorio)
-                        filtraSubdado(self.repositorio.numerodepacotes, 15, self.repositorio)
-                        filtraSubdado(self.repositorio.RSSI, 16, self.repositorio)
-                        filtraSubdado(self.repositorio.tamanhopacote, 17, self.repositorio)
+                        filtraSubdado(self.repositorio.anguloldr, 11, self.repositorio)
+                        filtraSubdado(self.repositorio.tempbateria1, 12, self.repositorio)
+                        filtraSubdado(self.repositorio.tempbateria2, 13, self.repositorio)
+                        filtraSubdado(self.repositorio.voltage, 14, self.repositorio)
+                        filtraSubdado(self.repositorio.current, 15, self.repositorio)
+                        filtraSubdado(self.repositorio.numerodepacotes, 16, self.repositorio)
+                        filtraSubdado(self.repositorio.RSSI, 17, self.repositorio)
+                        filtraSubdado(self.repositorio.tamanhopacote, 18, self.repositorio)
 
                         print(self.repositorio.pacotesDados)
                         print(self.repositorio.dadosTemperatura)
@@ -69,7 +70,7 @@ class ThreadPrincipal(QThread):
                 if (self.repositorio.dadosTemperatura and self.repositorio.tempo and self.repositorio.altitude
                 and self.repositorio.numerodepacotes and self.repositorio.pressao and self.repositorio.tamanhopacote
                 and self.repositorio.RSSI and self.repositorio.latitude and self.repositorio.longitude and self.repositorio.sats
-                and self.repositorio.roll and self.repositorio.pitch and self.repositorio.yaw and self.repositorio.umidade):
+                and self.repositorio.roll and self.repositorio.pitch and self.repositorio.yaw and self.repositorio.anguloldr and self.repositorio.umidade):
 
                     self.ultimosSubdadosTemperaturaTempo.emit(self.repositorio.tempo[-1], self.repositorio.dadosTemperatura[-1])
                     self.ultimosDadosBrutos.emit(self.repositorio.pacotesDados[-1])
@@ -82,17 +83,17 @@ class ThreadPrincipal(QThread):
                         int(self.repositorio.tamanhopacote[-1])
                     )
                     self.pacoteDadosGPS.emit(self.repositorio.latitude[-1], self.repositorio.longitude[-1], int(self.repositorio.sats[-1]))
-                    self.pacoteGiro.emit(self.repositorio.roll[-1], self.repositorio.pitch[-1], self.repositorio.yaw[-1])
+                    self.pacoteGiro.emit(self.repositorio.roll[-1], self.repositorio.pitch[-1], self.repositorio.yaw[-1], self.repositorio.anguloldr[-1])
                     self.pacoteUmidade.emit(self.repositorio.umidade[-1])
         
                 else:
                     print("Repositorio vazio")
                 
-                self.msleep(1000)
+                self.msleep(10)
 
             except Exception as e:
                 print(f"Erro inesperado: {e}")
-                self.msleep(1000)  # Evita travar o loop
+                self.msleep(10)  # Evita travar o loop
     
     def stop(self):
         self.flagRodando = False

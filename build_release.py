@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 # Defina a versão desejada para a build aqui:
-VERSION = "1.1.0"  
+VERSION = "1.2.1"  
 APP_NAME = f"AbaTrack_v{VERSION}"
 MAIN_SCRIPT = "abatrack.py"
 ICON_PATH = os.path.join("imgs", "AbaTrack.ico")

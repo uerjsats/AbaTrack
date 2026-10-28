@@ -13,7 +13,7 @@ import numpy as np
 from PIL import Image, ImageOps
 from PyQt5.QtCore import QSettings, Qt, QTimer
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5.QtWidgets import (
     QActionGroup,
     QApplication,
@@ -48,6 +48,12 @@ from UI.thread_main import ThreadPrincipal
 sys.path.append(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'integracao')
 )
+
+
+class PaginaWebMesmoAba(QWebEnginePage):
+
+  def createWindow(self, _window_type):
+    return self
 
 
 class MainWindow(QMainWindow):
@@ -306,6 +312,7 @@ class MainWindow(QMainWindow):
     layoutTelaWeb.setContentsMargins(10, 10, 10, 10)
 
     self.webView = QWebEngineView()
+    self.webView.setPage(PaginaWebMesmoAba(self.webView))
     self.webView.setUrl(QtCore.QUrl('http://www.missao.atlas.com'))
     layoutTelaWeb.addWidget(self.webView)
 
@@ -339,8 +346,30 @@ class MainWindow(QMainWindow):
     self.move(qr.topLeft())
 
   def listarPortas(self):
-    portas = serial.tools.list_ports.comports()
-    return [porta.device for porta in portas]
+        portas = [porta.device for porta in serial.tools.list_ports.comports()]
+        # O com0com 2.x registra as portas virtuais na classe de dispositivo
+        # "CNCPorts", que o comports() do pyserial NAO enumera. O registro
+        # HKLM\HARDWARE\DEVICEMAP\SERIALCOMM lista TODAS as portas COM (inclusive
+        # as virtuais), entao mesclamos as duas fontes para que pares com0com
+        # (COM12/COM13, COM14/COM15, ...) aparecam no menu de selecao de porta.
+        try:
+            import winreg
+            chave = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                   r"HARDWARE\DEVICEMAP\SERIALCOMM")
+            try:
+                i = 0
+                while True:
+                    _, valor, _ = winreg.EnumValue(chave, i)
+                    if valor not in portas:
+                        portas.append(valor)
+                    i += 1
+            except OSError:
+                pass  # fim da enumeracao
+            finally:
+                winreg.CloseKey(chave)
+        except OSError:
+            pass  # sem a chave (ex.: nenhuma porta) — segue so com comports()
+        return portas
 
   def atualizarLabelDadoBruto(self, ultimoPacoteDados):
     self.dadosRecebidos = True
@@ -374,6 +403,7 @@ class MainWindow(QMainWindow):
     roll = self.repositorio.roll[-1]
     pitch = self.repositorio.pitch[-1]
     yaw = self.repositorio.yaw[-1]
+    anguloldr = self.repositorio.anguloldr[-1]
 
     self.cube.resetTransform()
     self.cube.rotate(roll, 1, 0, 0)
@@ -382,7 +412,7 @@ class MainWindow(QMainWindow):
 
     self.labelDadosGyro.setText(
         f'<div style="text-align: center;"><b>Dados'
-        f' Giro</b></div><br>Roll: {roll}<br>Pitch: {pitch}<br>Yaw: {yaw}'
+        f' Giro</b></div><br>Roll: {roll}<br>Pitch: {pitch}<br>Yaw: {yaw}<br>Ângulo LDR: {anguloldr}'
     )
 
   def iniciarLeitura(self):
