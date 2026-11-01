@@ -23,12 +23,30 @@ class RepositorioTelemetria:
         self.tempbateria2 = []
         self.voltage = []
         self.current = []
+        self.imagens = []
 
     def __str__(self):
         if self.pacotesDados:
             return "\n".join(self.pacotesDados)
         else:
             return "Nenhum dado registrado no repositorio."
+
+class ImagemTelemetria:
+    """Imagem JPEG recebida da estacao de solo.
+
+    indicePacote e a posicao, em RepositorioTelemetria.pacotesDados, do ultimo
+    pacote de telemetria recebido quando a imagem chegou (None se ainda nao
+    havia nenhum). Serve para saber onde o satelite estava nesse momento.
+    """
+    def __init__(self, dadosJpeg: bytes, horario, caminho=None, indicePacote=None):
+        self.dadosJpeg = dadosJpeg
+        self.horario = horario
+        self.caminho = caminho
+        self.indicePacote = indicePacote
+
+    @property
+    def tamanho(self):
+        return len(self.dadosJpeg)
 
 class ConfigsComunicacao: 
     def __init__(self, portaArduino, baudRate):

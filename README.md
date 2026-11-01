@@ -40,6 +40,27 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 <img width="1527" height="811" alt="image" src="https://github.com/user-attachments/assets/dc2a018c-b629-4722-a29a-4435f60220d0" />
 
 
+### Tela 5: Imagens recebidas
+- Recebe as imagens JPEG enviadas pela estação de solo na **mesma porta serial** da telemetria, sem precisar de outro programa
+- Barra de progresso durante o recebimento e histórico das imagens da sessão (com miniaturas)
+- Tratamento da imagem: auto-contraste, inverter cores, brilho e contraste
+- Salvar a imagem original (.jpg, exatamente como chegou) ou a tratada (.png)
+- Cada imagem recebida também é gravada automaticamente em `dados_salvos/imagens/` (ao lado do executável)
+- As imagens ficam no repositório de telemetria junto com o índice do último pacote recebido, então a aba mostra tempo, altitude e posição do momento em que a imagem chegou
+
+Protocolo esperado na serial (o JPEG é lido por contagem de bytes, então qualquer byte dentro dele é aceito):
+```
+IMAGE_BEGIN
+SIZE:<n>
+<n bytes crus do JPEG>
+IMAGE_END
+```
+
+A telemetria em texto (19 campos) pode vir intercalada com as imagens. O AbaTrack separa os dois sozinho, então basta conectar na COM da Heltec, sem programas extras nem portas virtuais.
+
+<img width="1280" height="720" alt="Tela de imagens recebidas" src="https://github.com/user-attachments/assets/ebd6c9be-00a8-4f8c-b22b-b6d6a4ba2069" />
+
+
 ## 📡 Comunicação Serial
 
 - Conexão e desconexão com Arduino via porta serial
@@ -88,7 +109,7 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 
 ## ⚙️ Recursos Adicionais
 
-- Interface com 3 telas navegáveis por botões
+- Interface com 5 telas navegáveis por botões
 - Salvamento automático ao fechar (se houver dados)
 - Sistema de notificações toast para feedback ao usuário
 - Avisos configuráveis (opção “não mostrar novamente”)
@@ -131,6 +152,7 @@ OBS: o pacote de dados tem **19 campos separados por `:`** e tem que estar com a
 5. Acompanhe os dados em tempo real  
 6. Salve os dados (TXT ou CSV)  
 7. Salve as imagens dos gráficos ou do mapa
+8. Veja e trate as imagens enviadas pelo satélite na Tela 5 (botão com ícone de foto)
 
 ## 🛰️ Aplicação
 

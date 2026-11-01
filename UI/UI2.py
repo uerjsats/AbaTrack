@@ -8,6 +8,7 @@ from dominio.entidades import *
 from folium import Map, Marker
 import folium
 from integracao.adaptador_arduino import AdaptadorArduino
+from integracao.armazenamento_imagens import diretorioImagens, salvarImagemOriginal
 from integracao.salvar_graficos import salvarGrafico
 import numpy as np
 from PIL import Image, ImageOps
@@ -41,6 +42,7 @@ import pyqtgraph.opengl as gl
 from pyqtgraph.Qt import QtCore, QtGui
 import serial.tools.list_ports
 from UI.graficosGenericos import GraficoDinamicoGenerico
+from UI.tela_imagens import TelaImagens
 from UI.tela_serial import TelaSerial
 from UI.thread_main import ThreadPrincipal
 
@@ -145,6 +147,17 @@ class MainWindow(QMainWindow):
         lambda: self.stackedWidget.setCurrentIndex(3)
     )
     self.layoutBotoesNavegacao.addWidget(self.botaoTelaWeb)
+
+    self.botaoTelaImagens = QPushButton('', self)
+    self.botaoTelaImagens.setFixedSize(45, 25)
+    self.botaoTelaImagens.setToolTip('Imagens recebidas')
+    self.botaoTelaImagens.setIcon(
+        QIcon(os.path.join(base_path, 'imgs', 'icon_tela_imagem.png'))
+    )
+    self.botaoTelaImagens.clicked.connect(
+        lambda: self.stackedWidget.setCurrentIndex(4)
+    )
+    self.layoutBotoesNavegacao.addWidget(self.botaoTelaImagens)
 
     self.layoutPrincipal.addLayout(self.layoutBotoesNavegacao)
 
@@ -298,7 +311,7 @@ class MainWindow(QMainWindow):
     layoutContainerGyro = QVBoxLayout(self.containerGyro)
     self.labelDadosGyro = QLabel(
         '<div style="text-align: center;"><b>Dados'
-        ' Giro</b></div><br>Roll:<br>Pitch:<br>Yaw: '
+        ' Giro</b></div><br>Roll:<br>Pitch:<br>Yaw:<br>Ângulo LDR: '
     )
     self.labelDadosGyro.setStyleSheet('font-size: 15px;')
     layoutContainerGyro.addWidget(self.labelDadosGyro)
@@ -317,6 +330,11 @@ class MainWindow(QMainWindow):
     layoutTelaWeb.addWidget(self.webView)
 
     self.stackedWidget.addWidget(self.telaWeb)
+
+    # ------------------- TELA 5 (Imagens recebidas) -------------------
+    self.pastaImagens = diretorioImagens()
+    self.telaImagens = TelaImagens(self.repositorio, self.pastaImagens)
+    self.stackedWidget.addWidget(self.telaImagens)
 
     # Adiciona o QStackedWidget no layout principal da janela
     self.layoutPrincipal.addWidget(self.stackedWidget)
@@ -338,6 +356,16 @@ class MainWindow(QMainWindow):
         )
     )
     self.adaptador.erroSerial.connect(self.tratarErroSerial)
+    self.adaptador.progressoImagem.connect(self.telaImagens.atualizarProgresso)
+    self.adaptador.erroImagem.connect(self.telaImagens.registrarErro)
+    self.adaptador.imagemRecebida.connect(self.aoReceberImagem)
+
+  def aoReceberImagem(self, dadosJpeg):
+    imagem = registrarImagem_useCase(
+        dadosJpeg, self.repositorio, self.pastaImagens, salvarImagemOriginal
+    )
+    self.telaImagens.adicionarImagem(imagem)
+    self.mostrarToast('Nova imagem recebida!')
 
   def centralizarNaTela(self):
     qr = self.frameGeometry()

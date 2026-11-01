@@ -2,7 +2,7 @@ import os
 from typing import Callable
 
 from datetime import datetime
-from dominio.entidades import RepositorioTelemetria, ConfigsComunicacao
+from dominio.entidades import RepositorioTelemetria, ConfigsComunicacao, ImagemTelemetria
 
 def alterarPortaArduino(configAtual: ConfigsComunicacao, novaPorta: str):
     portaAntiga = configAtual.portaAntiga
@@ -51,6 +51,40 @@ def salvarDadosTXT(repositorio: RepositorioTelemetria):
             file.write(f"tempo:{pacote[0]}s  temperatura satélite:{pacote[1]}°C   umidade:{pacote[2]}%  pressão:{pacote[4]}Pa  altitude:{pacote[3]}m latitude:{pacote[5]} longitude:{pacote[6]}  n° de sats:{pacote[7]}  giro x:{pacote[8]}  giro y:{pacote[9]}  giro z:{pacote[10]} ângulo LDR:{pacote[11]}° temperatura bateria 1:{pacote[12]}°C temperatura bateria 2:{pacote[13]}°C tensão:{pacote[14]}V corrente:{pacote[15]}A n° de pacotes:{pacote[16]}  RSSI:{pacote[17]} dBm  tamanho do pacote:{pacote[18]}\n")
     print("Histórico salvo no TXT")
 
+
+def registrarImagem_useCase(dadosJpeg: bytes,
+                  repositorio: RepositorioTelemetria,
+                  pasta: str,
+                  funcaoSalvarImagem: Callable[[bytes, str, datetime], str]
+    ) -> ImagemTelemetria:
+    """Guarda a imagem no repositorio e grava o original em disco."""
+    if not dadosJpeg:
+        raise ValueError("Imagem vazia.")
+
+    horario = datetime.now()
+    try:
+        caminho = funcaoSalvarImagem(dadosJpeg, pasta, horario)
+    except OSError as e:
+        print(f"Erro ao salvar imagem: {e}")
+        caminho = None
+
+    indicePacote = len(repositorio.pacotesDados) - 1 if repositorio.pacotesDados else None
+    imagem = ImagemTelemetria(dadosJpeg, horario, caminho, indicePacote)
+    repositorio.imagens.append(imagem)
+    return imagem
+
+def telemetriaDaImagem(imagem: ImagemTelemetria, repositorio: RepositorioTelemetria):
+    """Telemetria do momento em que a imagem chegou, ou None se nao havia."""
+    indice = imagem.indicePacote
+    if indice is None or indice >= len(repositorio.pacotesDados):
+        return None
+    pacote = repositorio.pacotesDados[indice]
+    return {
+        "tempo": pacote[0],
+        "altitude": pacote[3],
+        "latitude": pacote[5],
+        "longitude": pacote[6],
+    }
 
 def salvarGrafico_useCase(dadosX:list,
                   dadosY:list,
