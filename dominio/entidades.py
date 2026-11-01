@@ -1,3 +1,36 @@
+from collections import namedtuple
+
+# Esquema do pacote de telemetria: UMA fonte da verdade para a ordem dos campos.
+# Cada campo diz em quais listas do RepositorioTelemetria o valor e guardado.
+# Ao inserir um campo novo, basta coloca-lo aqui na posicao certa (e criar a
+# lista no repositorio); o resto do software e o README seguem a mesma ordem.
+Campo = namedtuple("Campo", ["chave", "nome", "unidade", "listas"])
+
+CAMPOS_PACOTE = (
+    Campo("tempo", "Tempo", "s (segundos)", ("tempo", "tempo1")),
+    Campo("temperatura", "Temperatura", "°C", ("dadosTemperatura",)),
+    Campo("umidade", "Umidade", "%", ("umidade",)),
+    Campo("altitude", "Altitude", "m (metros)", ("altitude", "altitude1")),
+    Campo("pressao", "Pressão", "Pa (Pascal)", ("pressao", "pressao1")),
+    Campo("latitude", "Latitude", "graus decimais", ("latitude",)),
+    Campo("longitude", "Longitude", "graus decimais", ("longitude",)),
+    Campo("satelites", "Número de Satélites", "quantidade", ("sats",)),
+    Campo("roll", "Roll (Giro X)", "graus", ("roll",)),
+    Campo("pitch", "Pitch (Giro Y)", "graus", ("pitch",)),
+    Campo("yaw", "Yaw (Giro Z)", "graus", ("yaw",)),
+    Campo("angulo_ldr", "Ângulo LDR", "graus", ("anguloldr",)),
+    Campo("temp_bateria1", "Temperatura Bateria 1", "°C", ("tempbateria1",)),
+    Campo("temp_bateria2", "Temperatura Bateria 2", "°C", ("tempbateria2",)),
+    Campo("tensao", "Tensão", "V", ("voltage",)),
+    Campo("corrente", "Corrente", "A", ("current",)),
+    Campo("num_pacotes", "Número de Pacotes", "quantidade", ("numerodepacotes",)),
+    Campo("rssi", "RSSI", "dBm (sinal do rádio)", ("RSSI",)),
+    Campo("tamanho_pacote", "Tamanho do Pacote", "bytes", ("tamanhopacote",)),
+)
+
+# chave do campo -> posicao no vetor do pacote (tabela hash em vez de indices magicos)
+INDICE_CAMPO = {campo.chave: i for i, campo in enumerate(CAMPOS_PACOTE)}
+
 class RepositorioTelemetria:
     def __init__(self):
         self.pacotesDados = []

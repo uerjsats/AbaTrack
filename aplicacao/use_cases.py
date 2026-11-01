@@ -2,7 +2,13 @@ import os
 from typing import Callable
 
 from datetime import datetime
-from dominio.entidades import RepositorioTelemetria, ConfigsComunicacao, ImagemTelemetria
+from dominio.entidades import (
+    CAMPOS_PACOTE,
+    INDICE_CAMPO,
+    ConfigsComunicacao,
+    ImagemTelemetria,
+    RepositorioTelemetria,
+)
 
 def alterarPortaArduino(configAtual: ConfigsComunicacao, novaPorta: str):
     portaAntiga = configAtual.portaAntiga
@@ -21,8 +27,8 @@ def processarPacoteDeDados(pacote):
     # Converte cada parte para float, substituindo valores vazios por 0.0
     partes_completas = [float(parte) if parte.strip() else 0.0 for parte in partes]
     
-    # Preenche com 0.0 até o tamanho esperado (14 índices, por exemplo)
-    while len(partes_completas) < 19:  # Ajuste o número para o tamanho esperado do pacote
+    # Preenche com 0.0 até o tamanho esperado (um valor por campo do esquema)
+    while len(partes_completas) < len(CAMPOS_PACOTE):
         partes_completas.append(0.0)
     
     return partes_completas
@@ -36,6 +42,13 @@ def filtraSubdado(listaSubdados, indiceSubdado, repositorio: RepositorioTelemetr
         dado = conjuntoDados[indiceSubdado]
         listaSubdados.append(dado)
 
+def distribuirPacoteNosSubdados(repositorio: RepositorioTelemetria):
+    """Copia cada campo do ultimo pacote para as listas do repositorio, na
+    ordem definida em CAMPOS_PACOTE."""
+    for indice, campo in enumerate(CAMPOS_PACOTE):
+        for nomeLista in campo.listas:
+            filtraSubdado(getattr(repositorio, nomeLista), indice, repositorio)
+
 def salvarDadosTXT(repositorio: RepositorioTelemetria):
     if not repositorio.pacotesDados:
         print("Nenhum dado registrado.")
@@ -48,7 +61,8 @@ def salvarDadosTXT(repositorio: RepositorioTelemetria):
         file.write("-------------------------------\n")
 
         for pacote in repositorio.pacotesDados:
-            file.write(f"tempo:{pacote[0]}s  temperatura satélite:{pacote[1]}°C   umidade:{pacote[2]}%  pressão:{pacote[4]}Pa  altitude:{pacote[3]}m latitude:{pacote[5]} longitude:{pacote[6]}  n° de sats:{pacote[7]}  giro x:{pacote[8]}  giro y:{pacote[9]}  giro z:{pacote[10]} ângulo LDR:{pacote[11]}° temperatura bateria 1:{pacote[12]}°C temperatura bateria 2:{pacote[13]}°C tensão:{pacote[14]}V corrente:{pacote[15]}A n° de pacotes:{pacote[16]}  RSSI:{pacote[17]} dBm  tamanho do pacote:{pacote[18]}\n")
+            v = lambda chave: pacote[INDICE_CAMPO[chave]]
+            file.write(f"tempo:{v('tempo')}s  temperatura satélite:{v('temperatura')}°C   umidade:{v('umidade')}%  pressão:{v('pressao')}Pa  altitude:{v('altitude')}m latitude:{v('latitude')} longitude:{v('longitude')}  n° de sats:{v('satelites')}  giro x:{v('roll')}  giro y:{v('pitch')}  giro z:{v('yaw')} ângulo LDR:{v('angulo_ldr')}° temperatura bateria 1:{v('temp_bateria1')}°C temperatura bateria 2:{v('temp_bateria2')}°C tensão:{v('tensao')}V corrente:{v('corrente')}A n° de pacotes:{v('num_pacotes')}  RSSI:{v('rssi')} dBm  tamanho do pacote:{v('tamanho_pacote')}\n")
     print("Histórico salvo no TXT")
 
 
