@@ -13,7 +13,9 @@ class ThreadPrincipal(QThread):
     dadosdoRadio = pyqtSignal(int, int, int)
     pacoteDadosGPS = pyqtSignal(float,float,int)
     pacoteGiro = pyqtSignal(float,float,float,float)
-    pacoteUmidade = pyqtSignal(float)   
+    pacoteUmidade = pyqtSignal(float)
+    pacoteAviao = pyqtSignal(str, float, float, int)
+    # icao, lat, lon, alt   
 
     def __init__(self, adaptador: AdaptadorArduino):
         super().__init__()
@@ -21,12 +23,38 @@ class ThreadPrincipal(QThread):
         self.repositorio = adaptador.repositorio
         self.flagRodando = True
 
+    def _tentaProcessarAviao(self, pacote) -> bool:
+        """Retorna True se o pacote era uma linha 'missão:' (válida ou não)."""
+        if isinstance(pacote, bytes):
+            pacote = pacote.decode('utf-8', errors='ignore')
+        if not isinstance(pacote, str):
+            return False
+
+        texto = pacote.strip()
+        if not texto.lower().startswith(('missão:', 'missao:')):
+            return False
+
+        try:
+            d = [x.strip() for x in texto.split(':', 1)[1].split(',')]
+            icao = d[0]
+            lat, lon = float(d[1]), float(d[2])
+            alt = int(float(d[3]))
+            self.pacoteAviao.emit(icao, lat, lon, alt)
+        except (IndexError, ValueError) as e:
+            print(f"Linha missão inválida: {texto}. Erro: {e}")
+        return True
+
     def run(self):
         while self.flagRodando:
             try:
                 pacote = self.adaptadorArduino.lePacoteSerial()  # pacote = "30.1:20.2", "30.2:20.1"
                 novoPacote = False
 
+                # Linha de missão (ADS-B): não passa pelo fluxo normal de telemetria
+                if pacote and self._tentaProcessarAviao(pacote):
+                    self.msleep(10)
+                    continue
+                
                 # Serial -> Repositorio
                 if pacote:
                     try:

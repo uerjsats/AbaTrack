@@ -1,85 +1,139 @@
 <!DOCTYPE html>
-<script>
-function atualizarPosicao(lat, lng) {
-    if (typeof marker !== "undefined" && marker !== null) {
-        marker.setLatLng([lat, lng]);
-    } else {
-        marker = L.marker([lat, lng]).addTo(map);
-    }
-    map.setView([lat, lng]);
-}
-</script>
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    <script>
-        L_NO_TOUCH = false;
-        L_DISABLE_3D = false;
-    </script>
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
     <style>
-        #map_d872e7c9ad01a7d616e7a0c5d9361274 {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            left: 0%;
-            top: 0%;
-        }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
         .leaflet-container { font-size: 1rem; }
+        .aviao { text-align: center; line-height: 24px; }
+        #contador {
+            position: absolute; top: 10px; right: 10px; z-index: 1000;
+            background: rgba(255,255,255,0.9); padding: 6px 10px;
+            border-radius: 6px; font: 14px sans-serif; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+        }
     </style>
 </head>
 <body>
-    <div class="folium-map" id="map_d872e7c9ad01a7d616e7a0c5d9361274"></div>
-</body>
+    <div id="map"></div>
+    <div id="contador">Aviões: 0</div>
+
 <script>
-    // Criando o mapa
-    var map = L.map("map_d872e7c9ad01a7d616e7a0c5d9361274", {
-        center: [-22.546472, -42.444504],
+    // ---------------------------------------------------------------
+    // Mapa
+    // ---------------------------------------------------------------
+    var CENTRO = [-22.546472, -42.444504];
+
+    var map = L.map("map", {
+        center: CENTRO,
         zoom: 14,
         zoomControl: true,
-        preferCanvas: false,
+        preferCanvas: false
     });
 
-    // Adicionando o tile layer do OpenStreetMap
-    var tile_layer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         minZoom: 0,
         maxZoom: 19,
         maxNativeZoom: 19,
-        attribution: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
-        subdomains: "abc",
-        detectRetina: false,
-        tms: false,
-        opacity: 1,
+        attribution: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
     }).addTo(map);
 
-    // Criando o marcador no ponto central
-    var marker = L.marker([-22.546472, -42.444504]).addTo(map);
+    // ---------------------------------------------------------------
+    // "Satélite" (marcador principal + círculo de 2 km)
+    // ---------------------------------------------------------------
+    var marker = L.marker(CENTRO).addTo(map);
+    marker.bindPopup("<b>Satélite</b>");
 
-    // Criando o popup do marcador
-    var popup = L.popup({ maxWidth: "100%" });
-    var html_content = $("<div style='width: 100%; height: 100%;'>A pretty CSS3 popup.<br> Easily customizable.</div>")[0];
-    popup.setContent(html_content);
-    marker.bindPopup(popup);
-
-    // Criando um círculo de 2km ao redor do marcador
-    var circle = L.circle([-22.546472, -42.444504], {
-        color: "blue",        // Cor da borda
-        fillColor: "blue",    // Cor do preenchimento
-        fillOpacity: 0.2,     // Opacidade do preenchimento
-        radius: 2000          // Raio do círculo em metros (2km)
+    var circle = L.circle(CENTRO, {
+        color: "blue",
+        fillColor: "blue",
+        fillOpacity: 0.2,
+        radius: 2000
     }).addTo(map);
 
+    // false = a câmera fica livre (não é movida pelas atualizações).
+    // Chame definirSeguirSatelite(true) para voltar a acompanhar o satélite.
+    var seguirSatelite = false;
+
+    function definirSeguirSatelite(valor) {
+        seguirSatelite = !!valor;
+    }
+
+    function atualizarPosicao(lat, lng) {
+        marker.setLatLng([lat, lng]);
+        circle.setLatLng([lat, lng]);
+        if (seguirSatelite) map.setView([lat, lng]);
+    }
+
+    // ---------------------------------------------------------------
+    // Aviões (ADS-B)
+    // ---------------------------------------------------------------
+    var avioes = {};              // icao -> {marker, ultimo}
+    var TEMPO_LIMITE = 60000;     // remove avião sem atualização após 60 s
+
+    function iconeAviao(rumo) {
+        // fa-plane aponta para a direita (leste), por isso rumo - 90
+        return L.divIcon({
+            className: "",
+            html: '<div class="aviao" style="transform: rotate(' + (rumo - 90) + 'deg);' +
+                  'font-size:22px; color:#1a4fa3; text-shadow:0 0 3px white;">' +
+                  '<i class="fa-solid fa-plane"></i></div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+    }
+
+    function atualizarContador() {
+        document.getElementById("contador").textContent =
+            "Aviões: " + Object.keys(avioes).length;
+    }
+
+    function atualizarAviao(icao, lat, lng, rumo, alt, vel, callsign) {
+        var texto = "<b>" + (callsign || icao) + "</b><br>" +
+                    "ICAO: " + icao + "<br>" +
+                    "Alt: " + alt + " ft<br>" +
+                    "Vel: " + vel + " kt<br>" +
+                    "Rumo: " + rumo + "°";
+
+        var pos = [lat, lng];
+
+        if (avioes[icao]) {
+            var a = avioes[icao];
+            a.marker.setLatLng(pos);
+            a.marker.setIcon(iconeAviao(rumo));
+            a.marker.setTooltipContent(texto);
+            a.ultimo = Date.now();
+        } else {
+            var m = L.marker(pos, { icon: iconeAviao(rumo) }).addTo(map);
+            m.bindTooltip(texto, { direction: "top" });
+            avioes[icao] = { marker: m, ultimo: Date.now() };
+            atualizarContador();
+        }
+    }
+
+    function removerAviao(icao) {
+        if (avioes[icao]) {
+            map.removeLayer(avioes[icao].marker);
+            delete avioes[icao];
+            atualizarContador();
+        }
+    }
+
+    function limparAvioes() {
+        Object.keys(avioes).forEach(removerAviao);
+    }
+
+    // Remove aviões que deixaram de transmitir
+    setInterval(function () {
+        var agora = Date.now();
+        Object.keys(avioes).forEach(function (icao) {
+            if (agora - avioes[icao].ultimo > TEMPO_LIMITE) removerAviao(icao);
+        });
+    }, 5000);
 </script>
+</body>
 </html>
