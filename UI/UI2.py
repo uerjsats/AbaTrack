@@ -376,9 +376,15 @@ class MainWindow(QMainWindow):
     if not self.mapa_pronto:
         return
 
+    velocidade = (
+        self.repositorio.velocidade[-1]
+        if self.repositorio.velocidade
+        else 0
+    )
+
     js = (
         f'atualizarAviao({json.dumps(icao)}, '
-        f'{lat}, {lon}, {alt});'
+        f'{lat}, {lon}, {alt}, {velocidade});'
     )
 
     self.mapaView.page().runJavaScript(js)

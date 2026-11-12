@@ -1,139 +1,491 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0,
+          maximum-scale=1.0, user-scalable=no">
+
+    <title>AbaTrack - Mapa de Telemetria</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+
     <style>
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
-        .leaflet-container { font-size: 1rem; }
-        .aviao { text-align: center; line-height: 24px; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .aviao {
+            text-align: center;
+            line-height: 24px;
+        }
+
         #contador {
-            position: absolute; top: 10px; right: 10px; z-index: 1000;
-            background: rgba(255,255,255,0.9); padding: 6px 10px;
-            border-radius: 6px; font: 14px sans-serif; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.95);
+            padding: 8px 14px;
+            border-radius: 7px;
+            font: bold 14px sans-serif;
+            color: #222;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .leaflet-tooltip {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            border-radius: 6px;
         }
     </style>
 </head>
+
 <body>
-    <div id="map"></div>
-    <div id="contador">Aviões: 0</div>
+
+<div id="map"></div>
+
+<div id="contador">
+    Aviões: 0
+</div>
 
 <script>
-    // ---------------------------------------------------------------
-    // Mapa
-    // ---------------------------------------------------------------
-    var CENTRO = [-22.546472, -42.444504];
 
-    var map = L.map("map", {
-        center: CENTRO,
-        zoom: 14,
-        zoomControl: true,
-        preferCanvas: false
+// ================================================================
+// MAPA
+// ================================================================
+
+var CENTRO = [-22.546472, -42.444504];
+
+var map = L.map("map", {
+    center: CENTRO,
+    zoom: 14,
+    zoomControl: true,
+    preferCanvas: false
+});
+
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    minZoom: 0,
+    maxZoom: 19,
+    maxNativeZoom: 19,
+
+    attribution:
+        "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
+
+}).addTo(map);
+
+
+// ================================================================
+// SATÉLITE
+// ================================================================
+
+var marker = L.marker(CENTRO).addTo(map);
+
+marker.bindPopup("<b>Satélite AbaTrack</b>");
+
+var circle = L.circle(CENTRO, {
+    color: "blue",
+    fillColor: "blue",
+    fillOpacity: 0.2,
+    radius: 2000
+}).addTo(map);
+
+
+// Controle de acompanhamento do satélite
+
+var seguirSatelite = false;
+
+function definirSeguirSatelite(valor) {
+    seguirSatelite = !!valor;
+}
+
+
+// Atualização da posição do satélite
+
+function atualizarPosicao(lat, lng) {
+
+    lat = Number(lat);
+    lng = Number(lng);
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+    ) {
+        return;
+    }
+
+    marker.setLatLng([lat, lng]);
+
+    circle.setLatLng([lat, lng]);
+
+    if (seguirSatelite) {
+        map.setView([lat, lng]);
+    }
+}
+
+
+// ================================================================
+// AVIÕES ADS-B
+// ================================================================
+
+var avioes = {};
+
+var historicoAvioes = {};
+
+var TEMPO_LIMITE = 60000;
+
+
+// ================================================================
+// CÁLCULO DA DISTÂNCIA - HAVERSINE
+// ================================================================
+
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+
+    const R = 6371000;
+
+    const rad = Math.PI / 180;
+
+    const dLat = (lat2 - lat1) * rad;
+
+    const dLon = (lon2 - lon1) * rad;
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+
+        Math.cos(lat1 * rad) *
+        Math.cos(lat2 * rad) *
+
+        Math.sin(dLon / 2) ** 2;
+
+    const c =
+        2 * Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+
+    return R * c;
+}
+
+
+// ================================================================
+// CÁLCULO DA VELOCIDADE
+// ================================================================
+
+function calcularVelocidade(anterior, lat, lng, agora) {
+
+    if (!anterior) {
+        return 0;
+    }
+
+    const tempo =
+        (agora - anterior.tempo) / 1000;
+
+    if (tempo <= 0) {
+        return anterior.velocidade || 0;
+    }
+
+    const distancia = calcularDistancia(
+        anterior.lat,
+        anterior.lng,
+        lat,
+        lng
+    );
+
+    const velocidadeMS = distancia / tempo;
+
+    const velocidadeKT = velocidadeMS * 1.943844;
+
+    return velocidadeKT;
+}
+
+
+// ================================================================
+// ÍCONE DO AVIÃO
+// ================================================================
+
+function iconeAviao() {
+
+    return L.divIcon({
+
+        className: "",
+
+        html:
+            '<div class="aviao" style="' +
+            'font-size:22px;' +
+            'color:#1a4fa3;' +
+            'text-shadow:0 0 3px white;">' +
+
+            '<i class="fa-solid fa-plane"></i>' +
+
+            '</div>',
+
+        iconSize: [24, 24],
+
+        iconAnchor: [12, 12]
+
+    });
+}
+
+
+// ================================================================
+// CONTADOR DE AVIÕES
+// ================================================================
+
+function atualizarContador() {
+
+    document.getElementById("contador").textContent =
+        "Aviões: " + Object.keys(avioes).length;
+
+}
+
+
+// ================================================================
+// ATUALIZAR AVIÃO
+// ================================================================
+
+// Compatível com Python:
+//
+// atualizarAviao(icao, lat, lon, alt, velocidade, callsign)
+//
+// A velocidade recebida é ignorada.
+// O mapa calcula a velocidade pelas coordenadas GPS.
+
+function atualizarAviao(
+    icao,
+    lat,
+    lng,
+    alt,
+    velocidadeRecebida,
+    callsign
+) {
+
+    const agora = Date.now();
+
+    lat = Number(lat);
+    lng = Number(lng);
+    alt = Number(alt);
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        !Number.isFinite(alt) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+    ) {
+        return;
+    }
+
+    icao = String(icao);
+
+    const anterior = historicoAvioes[icao];
+
+    let velocidade = calcularVelocidade(
+        anterior,
+        lat,
+        lng,
+        agora
+    );
+
+    if (!Number.isFinite(velocidade)) {
+        velocidade = 0;
+    }
+
+    // Salva posição atual
+
+    historicoAvioes[icao] = {
+
+        lat: lat,
+
+        lng: lng,
+
+        tempo: agora,
+
+        velocidade: velocidade
+
+    };
+
+
+    // ============================================================
+    // INFORMAÇÕES DO AVIÃO
+    // ============================================================
+
+    const texto =
+
+        "<b>" + (callsign || icao) + "</b><br>" +
+
+        "ICAO: " + icao + "<br>" +
+
+        "Latitude: " + lat.toFixed(6) + "°<br>" +
+
+        "Longitude: " + lng.toFixed(6) + "°<br>" +
+
+        "Altitude: " + alt.toFixed(0) + " ft<br>" +
+
+        "Velocidade: " + velocidade.toFixed(2) + " kt";
+
+
+    const pos = [lat, lng];
+
+
+    // ============================================================
+    // AVIÃO JÁ EXISTENTE
+    // ============================================================
+
+    if (avioes[icao]) {
+
+        const a = avioes[icao];
+
+        a.marker.setLatLng(pos);
+
+        a.marker.setTooltipContent(texto);
+
+        a.ultimo = agora;
+
+        a.lat = lat;
+
+        a.lng = lng;
+
+        a.alt = alt;
+
+        a.velocidade = velocidade;
+
+        a.callsign = callsign || icao;
+
+    }
+
+    // ============================================================
+    // NOVO AVIÃO
+    // ============================================================
+
+    else {
+
+        const m = L.marker(pos, {
+
+            icon: iconeAviao()
+
+        }).addTo(map);
+
+
+        m.bindTooltip(texto, {
+
+            direction: "top",
+
+            permanent: false
+
+        });
+
+
+        avioes[icao] = {
+
+            marker: m,
+
+            ultimo: agora,
+
+            lat: lat,
+
+            lng: lng,
+
+            alt: alt,
+
+            velocidade: velocidade,
+
+            callsign: callsign || icao
+
+        };
+
+
+        atualizarContador();
+
+    }
+
+}
+
+
+// ================================================================
+// REMOVER AVIÃO
+// ================================================================
+
+function removerAviao(icao) {
+
+    if (avioes[icao]) {
+
+        map.removeLayer(avioes[icao].marker);
+
+        delete avioes[icao];
+
+        delete historicoAvioes[icao];
+
+        atualizarContador();
+
+    }
+
+}
+
+
+// ================================================================
+// LIMPAR TODOS OS AVIÕES
+// ================================================================
+
+function limparAvioes() {
+
+    Object.keys(avioes).forEach(function(icao) {
+
+        removerAviao(icao);
+
     });
 
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        minZoom: 0,
-        maxZoom: 19,
-        maxNativeZoom: 19,
-        attribution: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
-    }).addTo(map);
+}
 
-    // ---------------------------------------------------------------
-    // "Satélite" (marcador principal + círculo de 2 km)
-    // ---------------------------------------------------------------
-    var marker = L.marker(CENTRO).addTo(map);
-    marker.bindPopup("<b>Satélite</b>");
 
-    var circle = L.circle(CENTRO, {
-        color: "blue",
-        fillColor: "blue",
-        fillOpacity: 0.2,
-        radius: 2000
-    }).addTo(map);
+// ================================================================
+// REMOVER AVIÕES SEM ATUALIZAÇÃO
+// ================================================================
 
-    // false = a câmera fica livre (não é movida pelas atualizações).
-    // Chame definirSeguirSatelite(true) para voltar a acompanhar o satélite.
-    var seguirSatelite = false;
+setInterval(function() {
 
-    function definirSeguirSatelite(valor) {
-        seguirSatelite = !!valor;
-    }
+    const agora = Date.now();
 
-    function atualizarPosicao(lat, lng) {
-        marker.setLatLng([lat, lng]);
-        circle.setLatLng([lat, lng]);
-        if (seguirSatelite) map.setView([lat, lng]);
-    }
+    Object.keys(avioes).forEach(function(icao) {
 
-    // ---------------------------------------------------------------
-    // Aviões (ADS-B)
-    // ---------------------------------------------------------------
-    var avioes = {};              // icao -> {marker, ultimo}
-    var TEMPO_LIMITE = 60000;     // remove avião sem atualização após 60 s
+        if (
+            agora - avioes[icao].ultimo > TEMPO_LIMITE
+        ) {
 
-    function iconeAviao(rumo) {
-        // fa-plane aponta para a direita (leste), por isso rumo - 90
-        return L.divIcon({
-            className: "",
-            html: '<div class="aviao" style="transform: rotate(' + (rumo - 90) + 'deg);' +
-                  'font-size:22px; color:#1a4fa3; text-shadow:0 0 3px white;">' +
-                  '<i class="fa-solid fa-plane"></i></div>',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
-    }
+            removerAviao(icao);
 
-    function atualizarContador() {
-        document.getElementById("contador").textContent =
-            "Aviões: " + Object.keys(avioes).length;
-    }
-
-    function atualizarAviao(icao, lat, lng, rumo, alt, vel, callsign) {
-        var texto = "<b>" + (callsign || icao) + "</b><br>" +
-                    "ICAO: " + icao + "<br>" +
-                    "Alt: " + alt + " ft<br>" +
-                    "Vel: " + vel + " kt<br>" +
-                    "Rumo: " + rumo + "°";
-
-        var pos = [lat, lng];
-
-        if (avioes[icao]) {
-            var a = avioes[icao];
-            a.marker.setLatLng(pos);
-            a.marker.setIcon(iconeAviao(rumo));
-            a.marker.setTooltipContent(texto);
-            a.ultimo = Date.now();
-        } else {
-            var m = L.marker(pos, { icon: iconeAviao(rumo) }).addTo(map);
-            m.bindTooltip(texto, { direction: "top" });
-            avioes[icao] = { marker: m, ultimo: Date.now() };
-            atualizarContador();
         }
-    }
 
-    function removerAviao(icao) {
-        if (avioes[icao]) {
-            map.removeLayer(avioes[icao].marker);
-            delete avioes[icao];
-            atualizarContador();
-        }
-    }
+    });
 
-    function limparAvioes() {
-        Object.keys(avioes).forEach(removerAviao);
-    }
+}, 5000);
 
-    // Remove aviões que deixaram de transmitir
-    setInterval(function () {
-        var agora = Date.now();
-        Object.keys(avioes).forEach(function (icao) {
-            if (agora - avioes[icao].ultimo > TEMPO_LIMITE) removerAviao(icao);
-        });
-    }, 5000);
+
 </script>
+
 </body>
 </html>
