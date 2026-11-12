@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0,
+          maximum-scale=1.0, user-scalable=no">
+
+    <title>AbaTrack - Mapa de Telemetria</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .aviao {
+            text-align: center;
+            line-height: 24px;
+        }
+
+        #contador {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.95);
+            padding: 8px 14px;
+            border-radius: 7px;
+            font: bold 14px sans-serif;
+            color: #222;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        #controles {
+            position: absolute;
+            top: 55px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .botao {
+            border: none;
+            border-radius: 6px;
+            padding: 9px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        #btnTrajetoria {
+            background: #1976d2;
+        }
+
+        #btnLimpar {
+            background: #d32f2f;
+        }
+
+        .leaflet-tooltip {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            border-radius: 6px;
+        }
+
+        .inicio-icon,
+        .fim-icon {
+            background: transparent;
+            border: none;
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div id="contador">
+    Aviões: 0
+</div>
+
+<div id="controles">
+
+    <button id="btnTrajetoria"
+            class="botao"
+            onclick="alternarTrajetorias()">
+        <i class="fa-solid fa-route"></i>
+        Ocultar trajetórias
+    </button>
+
+    <button id="btnLimpar"
+            class="botao"
+            onclick="limparTrajetorias()">
+        <i class="fa-solid fa-trash"></i>
+        Limpar trajetórias
+    </button>
+
+</div>
+
+<script>
+
+// ================================================================
+// MAPA
+// ================================================================
+
+var CENTRO = [-22.546472, -42.444504];
+
+var map = L.map("map", {
+    center: CENTRO,
+    zoom: 14,
+    zoomControl: true,
+    preferCanvas: false
+});
+
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    minZoom: 0,
+    maxZoom: 19,
+    maxNativeZoom: 19,
+    attribution:
+        "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors"
+}).addTo(map);
+
+
+// ================================================================
+// SATÉLITE
+// ================================================================
+
+var marker = L.marker(CENTRO).addTo(map);
+
+marker.bindPopup("<b>Satélite AbaTrack</b>");
+
+var circle = L.circle(CENTRO, {
+    color: "blue",
+    fillColor: "blue",
+    fillOpacity: 0.2,
+    radius: 2000
+}).addTo(map);
+
+
+// Controle de acompanhamento do satélite
+
+var seguirSatelite = false;
+
+function definirSeguirSatelite(valor) {
+    seguirSatelite = !!valor;
+}
+
+
+// Atualização da posição do satélite
+
+function atualizarPosicao(lat, lng) {
+
+    lat = Number(lat);
+    lng = Number(lng);
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+    ) {
+        return;
+    }
+
+    marker.setLatLng([lat, lng]);
+
+    circle.setLatLng([lat, lng]);
+
+    if (seguirSatelite) {
+        map.setView([lat, lng]);
+    }
+}
+
+
+// ================================================================
+// AVIÕES ADS-B
+// ================================================================
+
+var avioes = {};
+
+var historicoAvioes = {};
+
+var trajetorias = {};
+
+var marcadoresInicio = {};
+
+var marcadoresFim = {};
+
+var TEMPO_LIMITE = 60000;
+
+var MAX_PONTOS_TRAJETORIA = 1000;
+
+var mostrarTrajetorias = true;
+
+
+// ================================================================
+// CONFIGURAÇÃO DA TRAJETÓRIA
+// ================================================================
+
+function criarTrajetoria(icao, pos) {
+
+    // Linha da trajetória
+
+    trajetorias[icao] = L.polyline([pos], {
+
+        color: "#1976d2",
+
+        weight: 3,
+
+        opacity: 0.85,
+
+        smoothFactor: 1
+
+    }).addTo(map);
+
+
+    // Marcador do início
+
+    marcadoresInicio[icao] = L.marker(pos, {
+
+        icon: L.divIcon({
+
+            className: "inicio-icon",
+
+            html: '<i class="fa-solid fa-circle" style="color:#00a000;text-shadow:0 0 3px white;"></i>',
+
+            iconSize: [20, 20],
+
+            iconAnchor: [10, 10]
+
+        })
+
+    }).addTo(map);
+
+
+    marcadoresInicio[icao].bindTooltip(
+        "Início da trajetória - " + icao
+    );
+
+
+    // Marcador do final
+
+    marcadoresFim[icao] = L.marker(pos, {
+
+        icon: L.divIcon({
+
+            className: "fim-icon",
+
+            html: '<i class="fa-solid fa-location-dot" style="color:#e53935;text-shadow:0 0 3px white;"></i>',
+
+            iconSize: [20, 20],
+
+            iconAnchor: [10, 18]
+
+        })
+
+    }).addTo(map);
+
+
+    marcadoresFim[icao].bindTooltip(
+        "Última posição - " + icao
+    );
+
+
+    if (!mostrarTrajetorias) {
+
+        map.removeLayer(trajetorias[icao]);
+
+        map.removeLayer(marcadoresInicio[icao]);
+
+        map.removeLayer(marcadoresFim[icao]);
+
+    }
+
+}
+
+
+// ================================================================
+// ADICIONAR PONTO À TRAJETÓRIA
+// ================================================================
+
+function adicionarPontoTrajetoria(icao, lat, lng) {
+
+    const pos = [lat, lng];
+
+    // Cria trajetória se ainda não existir
+
+    if (!trajetorias[icao]) {
+
+        criarTrajetoria(icao, pos);
+
+        return;
+
+    }
+
+
+    // Recupera pontos existentes
+
+    const pontos = trajetorias[icao].getLatLngs();
+
+
+    // Evita adicionar pontos GPS repetidos
+
+    if (pontos.length > 0) {
+
+        const ultimo = pontos[pontos.length - 1];
+
+        const distancia = calcularDistancia(
+            ultimo.lat,
+            ultimo.lng,
+            lat,
+            lng
+        );
+
+        if (distancia < 1) {
+
+            return;
+
+        }
+
+    }
+
+
+    // Adiciona novo ponto
+
+    pontos.push(L.latLng(lat, lng));
+
+
+    // Limita quantidade de pontos
+
+    if (pontos.length > MAX_PONTOS_TRAJETORIA) {
+
+        pontos.shift();
+
+        // Atualiza o marcador inicial
+
+        if (pontos.length > 0) {
+
+            marcadoresInicio[icao].setLatLng(pontos[0]);
+
+        }
+
+    }
+
+
+    // Atualiza linha
+
+    trajetorias[icao].setLatLngs(pontos);
+
+
+    // Atualiza marcador final
+
+    marcadoresFim[icao].setLatLng(pos);
+
+}
+
+
+// ================================================================
+// MOSTRAR / OCULTAR TRAJETÓRIAS
+// ================================================================
+
+function alternarTrajetorias() {
+
+    mostrarTrajetorias = !mostrarTrajetorias;
+
+    Object.keys(trajetorias).forEach(function(icao) {
+
+        if (mostrarTrajetorias) {
+
+            trajetorias[icao].addTo(map);
+
+            marcadoresInicio[icao].addTo(map);
+
+            marcadoresFim[icao].addTo(map);
+
+        } else {
+
+            map.removeLayer(trajetorias[icao]);
+
+            map.removeLayer(marcadoresInicio[icao]);
+
+            map.removeLayer(marcadoresFim[icao]);
+
+        }
+
+    });
+
+
+    document.getElementById("btnTrajetoria").innerHTML =
+        mostrarTrajetorias
+        ? '<i class="fa-solid fa-route"></i> Ocultar trajetórias'
+        : '<i class="fa-solid fa-route"></i> Mostrar trajetórias';
+
+}
+
+
+// ================================================================
+// LIMPAR TRAJETÓRIAS
+// ================================================================
+
+function limparTrajetorias() {
+
+    Object.keys(trajetorias).forEach(function(icao) {
+
+        map.removeLayer(trajetorias[icao]);
+
+        map.removeLayer(marcadoresInicio[icao]);
+
+        map.removeLayer(marcadoresFim[icao]);
+
+        delete trajetorias[icao];
+
+        delete marcadoresInicio[icao];
+
+        delete marcadoresFim[icao];
+
+    });
+
+}
+
+
+// ================================================================
+// DISTÂNCIA - HAVERSINE
+// ================================================================
+
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+
+    const R = 6371000;
+
+    const rad = Math.PI / 180;
+
+    const dLat = (lat2 - lat1) * rad;
+
+    const dLon = (lon2 - lon1) * rad;
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+
+        Math.cos(lat1 * rad) *
+        Math.cos(lat2 * rad) *
+
+        Math.sin(dLon / 2) ** 2;
+
+    const c =
+        2 * Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+
+    return R * c;
+
+}
+
+
+// ================================================================
+// CÁLCULO DA VELOCIDADE GPS
+// ================================================================
+
+function calcularVelocidade(anterior, lat, lng, agora) {
+
+    if (!anterior) {
+
+        return 0;
+
+    }
+
+    const tempo =
+        (agora - anterior.tempo) / 1000;
+
+
+    if (tempo <= 0) {
+
+        return anterior.velocidade || 0;
+
+    }
+
+
+    const distancia = calcularDistancia(
+        anterior.lat,
+        anterior.lng,
+        lat,
+        lng
+    );
+
+
+    const velocidadeMS = distancia / tempo;
+
+    const velocidadeKT = velocidadeMS * 1.943844;
+
+
+    return velocidadeKT;
+
+}
+
+
+// ================================================================
+// ÍCONE DO AVIÃO
+// ================================================================
+
+function iconeAviao() {
+
+    return L.divIcon({
+
+        className: "",
+
+        html:
+            '<div class="aviao" style="' +
+            'font-size:22px;' +
+            'color:#1a4fa3;' +
+            'text-shadow:0 0 3px white;">' +
+
+            '<i class="fa-solid fa-plane"></i>' +
+
+            '</div>',
+
+        iconSize: [24, 24],
+
+        iconAnchor: [12, 12]
+
+    });
+
+}
+
+
+// ================================================================
+// CONTADOR DE AVIÕES
+// ================================================================
+
+function atualizarContador() {
+
+    document.getElementById("contador").textContent =
+        "Aviões: " + Object.keys(avioes).length;
+
+}
+
+
+// ================================================================
+// ATUALIZAR AVIÃO
+// ================================================================
+
+// Compatível com Python:
+//
+// atualizarAviao(icao, lat, lon, alt, velocidade, callsign)
+//
+// A velocidade recebida é ignorada.
+// A velocidade é calculada pelas coordenadas GPS.
+
+function atualizarAviao(
+    icao,
+    lat,
+    lng,
+    alt,
+    velocidadeRecebida,
+    callsign
+) {
+
+    const agora = Date.now();
+
+    lat = Number(lat);
+
+    lng = Number(lng);
+
+    alt = Number(alt);
+
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        !Number.isFinite(alt) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180
+    ) {
+
+        return;
+
+    }
+
+
+    icao = String(icao);
+
+
+    const anterior = historicoAvioes[icao];
+
+
+    // Calcula velocidade GPS
+
+    let velocidade = calcularVelocidade(
+        anterior,
+        lat,
+        lng,
+        agora
+    );
+
+
+    if (!Number.isFinite(velocidade)) {
+
+        velocidade = 0;
+
+    }
+
+
+    // Salva histórico para cálculo de velocidade
+
+    historicoAvioes[icao] = {
+
+        lat: lat,
+
+        lng: lng,
+
+        tempo: agora,
+
+        velocidade: velocidade
+
+    };
+
+
+    // ============================================================
+    // TEXTO DO TOOLTIP
+    // ============================================================
+
+    const texto =
+
+        "<b>" + (callsign || icao) + "</b><br>" +
+
+        "ICAO: " + icao + "<br>" +
+
+        "Latitude: " + lat.toFixed(6) + "°<br>" +
+
+        "Longitude: " + lng.toFixed(6) + "°<br>" +
+
+        "Altitude: " + alt.toFixed(0) + " ft<br>" +
+
+        "Velocidade: " + velocidade.toFixed(2) + " kt";
+
+
+    const pos = [lat, lng];
+
+
+    // ============================================================
+    // ATUALIZA TRAJETÓRIA
+    // ============================================================
+
+    adicionarPontoTrajetoria(icao, lat, lng);
+
+
+    // ============================================================
+    // AVIÃO EXISTENTE
+    // ============================================================
+
+    if (avioes[icao]) {
+
+        const a = avioes[icao];
+
+        a.marker.setLatLng(pos);
+
+        a.marker.setTooltipContent(texto);
+
+        a.ultimo = agora;
+
+        a.lat = lat;
+
+        a.lng = lng;
+
+        a.alt = alt;
+
+        a.velocidade = velocidade;
+
+        a.callsign = callsign || icao;
+
+    }
+
+
+    // ============================================================
+    // NOVO AVIÃO
+    // ============================================================
+
+    else {
+
+        const m = L.marker(pos, {
+
+            icon: iconeAviao()
+
+        }).addTo(map);
+
+
+        m.bindTooltip(texto, {
+
+            direction: "top",
+
+            permanent: false
+
+        });
+
+
+        avioes[icao] = {
+
+            marker: m,
+
+            ultimo: agora,
+
+            lat: lat,
+
+            lng: lng,
+
+            alt: alt,
+
+            velocidade: velocidade,
+
+            callsign: callsign || icao
+
+        };
+
+
+        atualizarContador();
+
+    }
+
+}
+
+
+// ================================================================
+// REMOVER AVIÃO
+// ================================================================
+
+function removerAviao(icao) {
+
+    if (avioes[icao]) {
+
+        map.removeLayer(avioes[icao].marker);
+
+        delete avioes[icao];
+
+        atualizarContador();
+
+    }
+
+    // Mantém a trajetória no mapa.
+    // O histórico também permanece para preservar o percurso.
+
+}
+
+
+// ================================================================
+// LIMPAR TODOS OS AVIÕES
+// ================================================================
+
+function limparAvioes() {
+
+    Object.keys(avioes).forEach(function(icao) {
+
+        removerAviao(icao);
+
+    });
+
+}
+
+
+// ================================================================
+// LIMPAR TODO O HISTÓRICO
+// ================================================================
+
+function limparHistoricoCompleto() {
+
+    limparAvioes();
+
+    limparTrajetorias();
+
+    historicoAvioes = {};
+
+}
+
+
+// ================================================================
+// REMOVER AVIÕES SEM ATUALIZAÇÃO
+// ================================================================
+
+setInterval(function() {
+
+    const agora = Date.now();
+
+    Object.keys(avioes).forEach(function(icao) {
+
+        if (
+            agora - avioes[icao].ultimo > TEMPO_LIMITE
+        ) {
+
+            removerAviao(icao);
+
+        }
+
+    });
+
+}, 5000);
+
+
+</script>
+
+</body>
+</html>
