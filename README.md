@@ -39,10 +39,11 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 ### Tela 5: Imagens recebidas
 - Recebe as imagens JPEG enviadas pela estação de solo na **mesma porta serial** da telemetria, sem precisar de outro programa
 - Barra de progresso durante o recebimento e histórico das imagens da sessão (com miniaturas)
-- Tratamento da imagem: auto-contraste, inverter cores, brilho e contraste
+- Tratamento da imagem: um botão de girar 90° a cada clique, como numa galeria (clique duas vezes para corrigir foto de cabeça para baixo), auto-contraste, negativo, brilho e contraste. A rotação vale para todas as imagens até clicar em Restaurar, e o arquivo original salvo não muda
 - Salvar a imagem original (.jpg, exatamente como chegou) ou a tratada (.png)
 - Cada imagem recebida também é gravada automaticamente em `dados_salvos/imagens/` (ao lado do executável)
 - As imagens ficam no repositório de telemetria junto com o índice do último pacote recebido, então a aba mostra tempo, altitude e posição do momento em que a imagem chegou
+- Missão secundária: a aeronave clandestina aparece na linha de informações da imagem, com a latitude e a longitude do ADS-B
 
 Protocolo esperado na serial (o JPEG é lido por contagem de bytes, então qualquer byte dentro dele é aceito):
 ```
@@ -53,6 +54,41 @@ IMAGE_END
 ```
 
 A telemetria em texto (19 campos) pode vir intercalada com as imagens. O AbaTrack separa os dois sozinho, então basta conectar na COM da Heltec, sem programas extras nem portas virtuais.
+
+### Missão ADS-B: dados do Orange Pi
+
+O Orange Pi decodifica o ADS-B a bordo e manda as mensagens ao OBC. O OBC as repassa pelo LoRa e a base imprime cada uma na serial com o prefixo `ORANGE:`. O AbaTrack separa essas linhas da telemetria de sensor, guarda o estado e o rastro de cada aeronave e grava tudo num banco SQLite.
+
+| Linha | Formato | O que o AbaTrack faz |
+|-------|---------|----------------------|
+| Aeronave | `ORANGE:AC,<seq>,<ts>,<icao24>,<lat>,<lon>,<alt_ft>,<gs_kt>[,<rumo>]` | guarda a posição, o rastro (últimas 120 posições) e o rumo; sem rumo, calcula entre duas posições |
+| Estado do Orange | `ORANGE:STATUS,<estado>,<modo>,<uptime_s>,<temp_cpu_C>,<msgs_rx>,<msgs_validas>,<aeronaves>,<ac_enviados>,<lat_media_ms>,<lat_max_ms>[,<descartados_fila>,<descartados_tx>,<msgs_ident>,<msgs_pos>,<msgs_vel>,<relogio_ok>]` | guarda o último e todos no banco |
+| Estado do OBC | `ORANGE:OPSTATE,<estado>,<auto>,<concluida>,<ac_rx>,<ac_perdidos>,<linhas_ok>,<linhas_invalidas>` | idem |
+| Eventos e confirmações | `ORANGE:EVT,<tipo>[,...]`, `ORANGE:ACK,<comando>[,...]`, `ORANGE:NAK,<comando>[,<motivo>]` | guarda; o `ACK,START,<n>` define a sessão |
+| Aeronave clandestina | `ORANGE:VEREDITO,CLANDESTINA,<lat>,<lon>` | grava no banco e mostra latitude e longitude na linha de informações da foto |
+
+Qualquer outra linha `ORANGE:` é guardada no banco sem tratamento, e linhas malformadas são guardadas como inválidas, sem travar o programa. O formato antigo `DET,<foto>,<lat>,<lon>` (só clandestinas) continua aceito.
+
+Como o AbaTrack liga o veredito à foto:
+- O OBC só envia aeronaves clandestinas (e a foto delas) no CubeDesign 2026, então `CLANDESTINA` é o único veredito aceito. Qualquer outro fica no banco como linha inválida.
+- O veredito e a foto podem chegar em qualquer ordem. Cada veredito é ligado à foto sem veredito mais antiga que tenha chegado em até 180 segundos de diferença.
+- A associação é por ordem e tempo, porque nem o quadro de imagem nem o veredito trazem o número da foto. Se uma foto se perder no rádio, o veredito dela fica na contagem "sem foto" até a janela de tempo passar.
+
+#### Banco de dados do ADS-B
+
+- **Onde:** `dados_salvos/adsb/adsb_AAAA-MM-DD_HH-MM-SS.db`, ao lado do executável. O arquivo é criado quando chega a primeira linha do Orange, então outras missões não geram arquivo vazio.
+- **Tabelas:** `aeronaves`, `status_orange`, `opstate`, `eventos`, `confirmacoes`, `vereditos`, `log_cru` e `meta`. O dicionário de dados completo fica em `ESQUEMA_adsb.md`, gravado na mesma pasta.
+- **Reprodutível:** a tabela `log_cru` guarda todas as linhas `ORANGE:` exatamente como chegaram, com a hora de chegada no PC, inclusive as malformadas. Dá para refazer qualquer análise a partir dela.
+- **Sem duplicados:** a tabela `aeronaves` ignora registros repetidos da mesma sessão e do mesmo `seq`, como os reenviados pelo `DUMP`.
+- **Sem travar a leitura:** a gravação roda numa thread própria, em lotes, e o arquivo `.db` já contém os dados durante a missão, então pode ser copiado sem fechar o AbaTrack.
+- **Duas horas por registro:** `ts` é a hora do Orange e `chegada` é a hora do PC. A latência de solo é a diferença, e só vale se o relógio do Orange foi acertado com `OP,TIME,<epoch>`.
+
+Exemplo de consulta, o trajeto de uma aeronave:
+```
+SELECT ts, lat, lon, alt_ft, rumo_graus FROM aeronaves WHERE icao24 = '40621D' ORDER BY ts;
+```
+
+As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são calculadas por `aplicacao/metricas_adsb.py`. Se o OBC enviar só um registro por aeronave por janela, o `seq` tem saltos esperados e a perda deve ser medida por um contador de transmissão do OBC.
 
 <img width="1280" height="720" alt="Tela de imagens recebidas" src="https://github.com/user-attachments/assets/ebd6c9be-00a8-4f8c-b22b-b6d6a4ba2069" />
 

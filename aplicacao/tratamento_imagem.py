@@ -19,9 +19,16 @@ def aplicarTratamento(imagem: Image.Image,
                       autoContraste: bool = False,
                       inverter: bool = False,
                       brilho: int = 0,
-                      contraste: int = 0) -> Image.Image:
-    """Devolve uma copia tratada. brilho e contraste vao de -100 a 100 (0 = original)."""
+                      contraste: int = 0,
+                      rotacao: int = 0) -> Image.Image:
+    """Devolve uma copia tratada. brilho e contraste vao de -100 a 100 (0 = original).
+    rotacao gira a foto em graus no sentido horario (multiplo de 90; 180 corrige a
+    camera montada de cabeca para baixo). E exato, sem perda."""
     resultado = imagem.convert("L") if imagem.mode in ("1", "P") else imagem.copy()
+
+    quartos = (rotacao // 90) % 4
+    if quartos:
+        resultado = resultado.rotate(-90 * quartos, expand=True)
 
     if autoContraste:
         resultado = ImageOps.autocontrast(resultado, cutoff=1)

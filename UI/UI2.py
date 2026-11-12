@@ -4,11 +4,14 @@ import os
 import sys
 
 from aplicacao.use_cases import *
+from aplicacao.deteccao_aeronave import registrarDeteccao_useCase
+from aplicacao.missao_adsb import registrarMensagemOrange_useCase
 from dominio.entidades import *
 from folium import Map, Marker
 import folium
 from integracao.adaptador_arduino import AdaptadorArduino
 from integracao.armazenamento_imagens import diretorioImagens, salvarImagemOriginal
+from integracao.banco_adsb import BancoAdsb, diretorioAdsb
 from integracao.salvar_graficos import salvarGrafico
 import numpy as np
 from PIL import Image, ImageOps
@@ -333,6 +336,7 @@ class MainWindow(QMainWindow):
 
     # ------------------- TELA 5 (Imagens recebidas) -------------------
     self.pastaImagens = diretorioImagens()
+    self.bancoAdsb = None  # criado quando chegar o primeiro dado do Orange
     self.telaImagens = TelaImagens(self.repositorio, self.pastaImagens)
     self.stackedWidget.addWidget(self.telaImagens)
 
@@ -359,6 +363,23 @@ class MainWindow(QMainWindow):
     self.adaptador.progressoImagem.connect(self.telaImagens.atualizarProgresso)
     self.adaptador.erroImagem.connect(self.telaImagens.registrarErro)
     self.adaptador.imagemRecebida.connect(self.aoReceberImagem)
+
+  def aoReceberDeteccao(self, deteccao):
+    pares = registrarDeteccao_useCase(deteccao, self.repositorio)
+    self.telaImagens.aoReceberDeteccao(pares)
+    self.mostrarToast('Aeronave clandestina detectada')
+
+  def aoReceberMensagemOrange(self, msg):
+    if self.bancoAdsb is None:
+      self.bancoAdsb = BancoAdsb(diretorioAdsb())
+    resultado = registrarMensagemOrange_useCase(
+        msg, self.repositorio, self.bancoAdsb
+    )
+    if msg.tipo == 'VEREDITO':
+      self.telaImagens.aoReceberDeteccao(resultado['pares'])
+      self.mostrarToast('Aeronave clandestina detectada')
+    elif resultado['novaAeronave'] and len(self.repositorio.aeronaves) == 1:
+      self.mostrarToast('Recebendo dados de ADS-B')
 
   def aoReceberImagem(self, dadosJpeg):
     imagem = registrarImagem_useCase(
@@ -460,6 +481,8 @@ class MainWindow(QMainWindow):
       self.thread.dadosdoRadio.connect(self.atualizarLabelDadosdoRadio)
       self.thread.pacoteDadosGPS.connect(self.atualizarLabelDadosGPS)
       self.thread.pacoteGiro.connect(self.atualizarLabelDadosGiro)
+      self.thread.deteccaoRecebida.connect(self.aoReceberDeteccao)
+      self.thread.mensagemOrange.connect(self.aoReceberMensagemOrange)
 
       self.thread.start()
 
@@ -508,10 +531,11 @@ class MainWindow(QMainWindow):
         Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
     )
     toast.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+    largura = max(200, toast.fontMetrics().horizontalAdvance(mensagem) + 40)
     toast.setGeometry(
-        self.geometry().center().x() - 100,
+        self.geometry().center().x() - largura // 2,
         self.geometry().center().y() - 50,
-        200,
+        largura,
         50,
     )
     toast.show()
@@ -861,6 +885,8 @@ class MainWindow(QMainWindow):
         self.mostrarAviso('Erro ao enviar comando', str(e))
 
   def closeEvent(self, event):
+    if self.bancoAdsb is not None:
+      self.bancoAdsb.fechar()
     if self.dadosRecebidos:
       self.salvarDados()
     event.accept()

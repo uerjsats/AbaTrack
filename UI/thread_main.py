@@ -1,5 +1,7 @@
 from integracao.adaptador_arduino import AdaptadorArduino
 from aplicacao.use_cases import *
+from aplicacao.deteccao_aeronave import ehLinhaDeteccao, interpretarLinhaDeteccao
+from aplicacao.mensagens_orange import ehMensagemOrange, lerMensagemOrange
 from dominio.entidades import *
 from PyQt5.QtCore import QThread, pyqtSignal
 import time
@@ -14,6 +16,8 @@ class ThreadPrincipal(QThread):
     pacoteDadosGPS = pyqtSignal(float,float,int)
     pacoteGiro = pyqtSignal(float,float,float,float)
     pacoteUmidade = pyqtSignal(float)   
+    deteccaoRecebida = pyqtSignal(object)  # DeteccaoAeronave (formato antigo DET)
+    mensagemOrange = pyqtSignal(object)    # MensagemOrange (linhas ORANGE: da base)
 
     def __init__(self, adaptador: AdaptadorArduino):
         super().__init__()
@@ -26,6 +30,17 @@ class ThreadPrincipal(QThread):
             try:
                 pacote = self.adaptadorArduino.lePacoteSerial()  # pacote = "30.1:20.2", "30.2:20.1"
                 novoPacote = False
+                recebeuLinha = bool(pacote)
+
+                # Mensagens do Orange Pi (ADS-B, veredito, status...) nao sao telemetria de sensor
+                if pacote and ehMensagemOrange(pacote):
+                    self.mensagemOrange.emit(lerMensagemOrange(pacote))
+                    pacote = None
+
+                # Linha DET (formato antigo) tambem nao e telemetria de sensor
+                if pacote and ehLinhaDeteccao(pacote):
+                    self._tratarDeteccao(pacote)
+                    pacote = None
 
                 # Serial -> Repositorio
                 if pacote:
@@ -57,11 +72,20 @@ class ThreadPrincipal(QThread):
                     self.pacoteGiro.emit(self.repositorio.roll[-1], self.repositorio.pitch[-1], self.repositorio.yaw[-1], self.repositorio.anguloldr[-1])
                     self.pacoteUmidade.emit(self.repositorio.umidade[-1])
 
-                self.msleep(10)
+                # So dorme quando nao chegou nada: com linhas na fila (rajada do
+                # ADS-B) segue direto para a proxima.
+                if not recebeuLinha:
+                    self.msleep(10)
 
             except Exception as e:
                 print(f"Erro inesperado: {e}")
                 self.msleep(10)  # Evita travar o loop
+
+    def _tratarDeteccao(self, linha):
+        try:
+            self.deteccaoRecebida.emit(interpretarLinhaDeteccao(linha))
+        except ValueError as e:
+            print(f"Erro ao processar deteccao: {ascii(linha[:80])}. Erro: {e}")
 
     def stop(self):
         self.flagRodando = False

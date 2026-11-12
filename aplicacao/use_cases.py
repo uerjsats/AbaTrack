@@ -2,6 +2,7 @@ import os
 from typing import Callable
 
 from datetime import datetime
+from aplicacao.deteccao_aeronave import associarDeteccoesEImagens
 from dominio.entidades import (
     CAMPOS_PACOTE,
     INDICE_CAMPO,
@@ -85,6 +86,7 @@ def registrarImagem_useCase(dadosJpeg: bytes,
     indicePacote = len(repositorio.pacotesDados) - 1 if repositorio.pacotesDados else None
     imagem = ImagemTelemetria(dadosJpeg, horario, caminho, indicePacote)
     repositorio.imagens.append(imagem)
+    associarDeteccoesEImagens(repositorio)
     return imagem
 
 def telemetriaDaImagem(imagem: ImagemTelemetria, repositorio: RepositorioTelemetria):

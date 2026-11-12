@@ -57,6 +57,17 @@ class RepositorioTelemetria:
         self.voltage = []
         self.current = []
         self.imagens = []
+        self.deteccoes = []
+        # Missao ADS-B (mensagens ORANGE: da base)
+        self.aeronaves = {}           # icao24 -> ultimo RegistroAeronave
+        self.trilhas = {}             # icao24 -> deque dos ultimos RegistroAeronave
+        self.registrosAdsb = []       # todos os RegistroAeronave, sem duplicados
+        self.chavesAdsb = set()       # (sessao, seq) ja guardados, para ignorar repeticoes
+        self.statusOrange = None      # dict do ultimo STATUS
+        self.opstateOrange = None     # dict do ultimo OPSTATE
+        self.eventosOrange = []       # (chegada, tipo, args)
+        self.confirmacoesOrange = []  # (chegada, "ACK" ou "NAK", comando, args)
+        self.sessaoOrange = 0         # numero da sessao, de ACK,START,<n>
 
     def __str__(self):
         if self.pacotesDados:
@@ -76,10 +87,56 @@ class ImagemTelemetria:
         self.horario = horario
         self.caminho = caminho
         self.indicePacote = indicePacote
+        self.deteccao = None  # DeteccaoAeronave associada (missao secundaria)
 
     @property
     def tamanho(self):
         return len(self.dadosJpeg)
+
+class DeteccaoAeronave:
+    """Aeronave clandestina detectada pela missao secundaria (o OBC so envia
+    essa situacao). indiceFoto e o photo_index do ESP32, quando a linha o traz
+    (o VEREDITO nao traz: None). latitude e longitude sao as do ADS-B
+    consultado. imagem e preenchida quando a foto dessa deteccao chega.
+    """
+    def __init__(self, indiceFoto, latitude: float, longitude: float, horario):
+        self.indiceFoto = indiceFoto
+        self.latitude = latitude
+        self.longitude = longitude
+        self.horario = horario
+        self.imagem = None  # ImagemTelemetria associada
+
+
+TAMANHO_TRILHA = 120  # posicoes guardadas por aeronave para desenhar o rastro
+
+
+class RegistroAeronave:
+    """Uma linha AC do Orange: estado de uma aeronave num instante.
+
+    ts e a hora do Orange (epoch) e chegada a hora em que o PC recebeu a linha.
+    rumo vem do ADS-B (opcional); se faltar, o AbaTrack o estima entre duas
+    posicoes e marca rumoEstimado.
+    """
+    def __init__(self, seq: int, ts: float, icao24: str, latitude: float,
+                 longitude: float, altitudeFt: int, velocidadeKt: int,
+                 rumo=None, chegada=None, sessao: int = 0):
+        self.seq = seq
+        self.ts = ts
+        self.icao24 = icao24
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitudeFt = altitudeFt
+        self.velocidadeKt = velocidadeKt
+        self.rumo = rumo
+        self.rumoEstimado = False
+        self.chegada = chegada
+        self.sessao = sessao
+
+    @property
+    def latencia(self):
+        """Segundos entre o registro no Orange e a chegada no PC (None sem relogio)."""
+        return None if self.chegada is None else self.chegada - self.ts
+
 
 class ConfigsComunicacao: 
     def __init__(self, portaArduino, baudRate):

@@ -8,6 +8,7 @@ from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon, QImage, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QGridLayout,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -23,9 +24,14 @@ from PyQt5.QtWidgets import (
 
 from aplicacao.tratamento_imagem import abrirJpeg, aplicarTratamento
 from aplicacao.use_cases import telemetriaDaImagem
-from dominio.entidades import ImagemTelemetria, RepositorioTelemetria
+from dominio.entidades import (
+    DeteccaoAeronave,
+    ImagemTelemetria,
+    RepositorioTelemetria,
+)
 
 TAMANHO_MINIATURA = 72
+
 
 ESTILO = """
     QFrame#painelLateral { background-color: #252525; border-radius: 10px; }
@@ -109,34 +115,46 @@ class TelaImagens(QWidget):
         titulo.setObjectName('titulo')
         colunaPainel.addWidget(titulo)
 
+        self.rotacao = 0
+        self.botaoGirar = QPushButton('Girar ↻')
+        self.botaoGirar.setToolTip('Gira a foto 90° a cada clique (duas vezes corrige foto de cabeça para baixo)')
+        colunaPainel.addWidget(self.botaoGirar)
         self.checkAutoContraste = QCheckBox('Auto-contraste')
-        self.checkInverter = QCheckBox('Inverter cores')
+        self.checkInverter = QCheckBox('Negativo (inverter cores)')
         colunaPainel.addWidget(self.checkAutoContraste)
         colunaPainel.addWidget(self.checkInverter)
 
         self.sliderBrilho = self._criarSlider(colunaPainel, 'Brilho')
         self.sliderContraste = self._criarSlider(colunaPainel, 'Contraste')
 
-        self.botaoRestaurar = QPushButton('Restaurar original')
-        colunaPainel.addWidget(self.botaoRestaurar)
-
-        self.botaoSalvarOriginal = QPushButton('Salvar original (.jpg)')
-        self.botaoSalvarTratada = QPushButton('Salvar tratada (.png)')
-        self.botaoAbrirPasta = QPushButton('Abrir pasta das imagens')
-        colunaPainel.addWidget(self.botaoSalvarOriginal)
-        colunaPainel.addWidget(self.botaoSalvarTratada)
-        colunaPainel.addWidget(self.botaoAbrirPasta)
+        self.botaoRestaurar = QPushButton('Restaurar')
+        self.botaoRestaurar.setToolTip('Volta ao original, sem tratamento')
+        self.botaoAbrirPasta = QPushButton('Abrir pasta')
+        self.botaoAbrirPasta.setToolTip('Abre a pasta onde as imagens recebidas são gravadas')
+        self.botaoSalvarOriginal = QPushButton('Salvar .jpg')
+        self.botaoSalvarOriginal.setToolTip('Salva a imagem original, exatamente como chegou')
+        self.botaoSalvarTratada = QPushButton('Salvar .png')
+        self.botaoSalvarTratada.setToolTip('Salva a imagem com o tratamento aplicado')
+        grade = QGridLayout()
+        grade.setSpacing(6)
+        grade.addWidget(self.botaoRestaurar, 0, 0)
+        grade.addWidget(self.botaoAbrirPasta, 0, 1)
+        grade.addWidget(self.botaoSalvarOriginal, 1, 0)
+        grade.addWidget(self.botaoSalvarTratada, 1, 1)
+        colunaPainel.addLayout(grade)
 
         self.labelEstatisticas = QLabel('')
         colunaPainel.addWidget(self.labelEstatisticas)
 
         colunaPainel.addWidget(QLabel('Histórico da sessão:'))
         self.listaHistorico = QListWidget()
+        self.listaHistorico.setMinimumHeight(130)
         self.listaHistorico.setIconSize(QSize(TAMANHO_MINIATURA, TAMANHO_MINIATURA))
         colunaPainel.addWidget(self.listaHistorico, stretch=1)
         layout.addWidget(painel)
 
         # ------------------------- sinais
+        self.botaoGirar.clicked.connect(lambda: self.girar(90))
         self.checkAutoContraste.toggled.connect(self.redesenhar)
         self.checkInverter.toggled.connect(self.redesenhar)
         self.sliderBrilho.valueChanged.connect(self.redesenhar)
@@ -180,7 +198,8 @@ class TelaImagens(QWidget):
         self.barraProgresso.setFormat('Imagem completa')
 
         self.linhas.append(imagem)
-        item = QListWidgetItem(self._textoItem(imagem))
+        item = QListWidgetItem()
+        self._preencherItem(item, imagem)
         try:
             miniatura = pilParaPixmap(abrirJpeg(imagem.dadosJpeg)).scaled(
                 TAMANHO_MINIATURA, TAMANHO_MINIATURA,
@@ -193,8 +212,29 @@ class TelaImagens(QWidget):
         self._atualizarEstatisticas()
 
     @staticmethod
-    def _textoItem(imagem):
-        return f"{imagem.horario.strftime('%H:%M:%S')} - {imagem.tamanho} B"
+    def _preencherItem(item, imagem):
+        texto = f"{imagem.horario.strftime('%H:%M:%S')} - {imagem.tamanho} B"
+        if imagem.deteccao is not None:
+            texto += "\nCLANDESTINA"
+        item.setText(texto)
+
+    def aoReceberDeteccao(self, pares):
+        """Chamada depois de uma deteccao entrar no repositorio. pares sao as
+        (deteccao, imagem) que ela acabou de formar com fotos que ja tinham chegado."""
+        for _, imagem in pares:
+            if imagem in self.linhas:
+                self._preencherItem(self.listaHistorico.item(self.linhas.index(imagem)), imagem)
+        self.redesenhar()
+        self._atualizarEstatisticas()
+
+    @staticmethod
+    def _textoVeredito(deteccao: DeteccaoAeronave):
+        partes = ["Missão secundária: CLANDESTINA"]
+        if deteccao.indiceFoto is not None:
+            partes.append(f"foto {deteccao.indiceFoto}")
+        partes.append(f"Latitude: {deteccao.latitude:.5f}")
+        partes.append(f"Longitude: {deteccao.longitude:.5f}")
+        return "  |  ".join(partes)
 
     # ------------------------------------------------------- exibicao
     def selecionarDoHistorico(self, linha):
@@ -212,6 +252,7 @@ class TelaImagens(QWidget):
             return None
         return aplicarTratamento(
             self.pilAtual,
+            rotacao=self.rotacao,
             autoContraste=self.checkAutoContraste.isChecked(),
             inverter=self.checkInverter.isChecked(),
             brilho=self.sliderBrilho.value(),
@@ -239,11 +280,13 @@ class TelaImagens(QWidget):
         largura, altura = self.pilAtual.size
         texto = (f"{largura}x{altura} px  |  {self.atual.tamanho} bytes  |  "
                  f"{self.atual.horario.strftime('%d/%m/%Y %H:%M:%S')}")
+        if self.atual.deteccao is not None:
+            texto += "\n" + self._textoVeredito(self.atual.deteccao)
+        else:
+            texto += ("\nMissão secundária: sem veredito ainda  |  "
+                      "Latitude: --  |  Longitude: --")
         telemetria = telemetriaDaImagem(self.atual, self.repositorio)
-        if telemetria:
-            texto += (f"\nTelemetria no momento: t={telemetria['tempo']} s  |  "
-                      f"alt={telemetria['altitude']} m  |  "
-                      f"lat={telemetria['latitude']}  lon={telemetria['longitude']}")
+ 
         self.labelInfo.setText(texto)
 
     def resizeEvent(self, evento):
@@ -251,8 +294,12 @@ class TelaImagens(QWidget):
         self.redesenhar()
 
     def _atualizarEstatisticas(self):
+        deteccoes = self.repositorio.deteccoes
+        clandestinas = deteccoes
+        semFoto = sum(1 for d in clandestinas if d.imagem is None)
         self.labelEstatisticas.setText(
-            f'Recebidas: {len(self.repositorio.imagens)}   |   Erros: {self.totalErros}')
+            f'Imagens: {len(self.repositorio.imagens)}   |   Erros: {self.totalErros}\n'
+            f'Clandestinas: {len(clandestinas)} (sem foto: {semFoto})\n')
 
     def _atualizarBotoes(self):
         temImagem = self.atual is not None
@@ -260,7 +307,12 @@ class TelaImagens(QWidget):
         self.botaoSalvarTratada.setEnabled(temImagem and self.pilAtual is not None)
 
     # --------------------------------------------------------- acoes
+    def girar(self, graus):
+        self.rotacao = (self.rotacao + graus) % 360
+        self.redesenhar()
+
     def restaurarOriginal(self):
+        self.rotacao = 0
         for controle in (self.checkAutoContraste, self.checkInverter):
             controle.blockSignals(True)
             controle.setChecked(False)
