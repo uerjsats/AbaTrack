@@ -142,6 +142,7 @@ As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são c
 ## ⚙️ Recursos Adicionais
 
 - Interface com 5 telas navegáveis por botões
+- Menu **Telas**: o usuário escolhe quais telas aparecem na barra de navegação (pelo menos uma fica sempre visível) e a escolha fica salva para a próxima vez que abrir o AbaTrack
 - Salvamento automático ao fechar (se houver dados)
 - Sistema de notificações toast para feedback ao usuário
 - Avisos configuráveis (opção “não mostrar novamente”)

@@ -357,6 +357,7 @@ class MainWindow(QMainWindow):
     self.timer.start(1000)
 
     self.settings = QSettings('AbaTrack', 'AbaTrack')
+    self.criarMenuTelas()
     self.resetarAvisos()
     self.adaptador.erroDecodificacao.connect(
         lambda: self.mostrarAvisoErroBaud(
@@ -367,6 +368,77 @@ class MainWindow(QMainWindow):
     self.adaptador.progressoImagem.connect(self.telaImagens.atualizarProgresso)
     self.adaptador.erroImagem.connect(self.telaImagens.registrarErro)
     self.adaptador.imagemRecebida.connect(self.aoReceberImagem)
+
+  # ==================== TELAS VISÍVEIS ====================
+  def criarMenuTelas(self):
+    """Menu 'Telas': o usuário escolhe quais telas aparecem na barra de
+    navegação. A escolha fica salva entre uma execução e outra."""
+    self.telasDisponiveis = [
+        ('Gráficos', self.botaoTela1),
+        ('GPS e Mapa', self.botaoTela2),
+        ('Visualização 3D', self.botaoTela3),
+        ('Web', self.botaoTelaWeb),
+        ('Imagens recebidas', self.botaoTelaImagens),
+    ]
+    try:
+      salvas = self.settings.value('telasVisiveis', None)
+      visiveis = None if salvas is None else {int(i) for i in salvas}
+    except (TypeError, ValueError):
+      visiveis = None
+    if not visiveis:
+      visiveis = set(range(len(self.telasDisponiveis)))
+
+    menuTelas = QMenu('Telas', self.menuBar)
+    # fica antes do último menu (Ajuda)
+    self.menuBar.insertMenu(self.menuBar.actions()[-1], menuTelas)
+    self.acoesTelas = []
+    for indice, (nome, botao) in enumerate(self.telasDisponiveis):
+      acao = menuTelas.addAction(nome)
+      acao.setCheckable(True)
+      acao.setChecked(indice in visiveis)
+      botao.setVisible(indice in visiveis)
+      botao.setToolTip(nome)
+      acao.toggled.connect(
+          lambda marcado, i=indice: self.alternarTela(i, marcado)
+      )
+      self.acoesTelas.append(acao)
+    menuTelas.addSeparator()
+    acaoTodas = menuTelas.addAction('Mostrar todas')
+    acaoTodas.triggered.connect(
+        lambda: [a.setChecked(True) for a in self.acoesTelas]
+    )
+    self._garantirTelaVisivel()
+
+  def alternarTela(self, indice, marcado):
+    if not marcado and sum(a.isChecked() for a in self.acoesTelas) == 0:
+      # pelo menos uma tela precisa ficar visível
+      self.acoesTelas[indice].blockSignals(True)
+      self.acoesTelas[indice].setChecked(True)
+      self.acoesTelas[indice].blockSignals(False)
+      self.mostrarToast('Pelo menos uma tela precisa ficar visível')
+      return
+    self.telasDisponiveis[indice][1].setVisible(marcado)
+    self.settings.setValue(
+        'telasVisiveis',
+        [i for i, a in enumerate(self.acoesTelas) if a.isChecked()],
+    )
+    self._garantirTelaVisivel()
+
+  def _garantirTelaVisivel(self):
+    """Se a tela aberta foi escondida, vai para a primeira que sobrou."""
+    atual = self.stackedWidget.currentIndex()
+    if self.acoesTelas[atual].isChecked():
+      return
+    for i, acao in enumerate(self.acoesTelas):
+      if acao.isChecked():
+        self.stackedWidget.setCurrentIndex(i)
+        return
+
+  def abrirTela(self, indice):
+    """Abre uma tela por código (ex.: servidor Web); reexibe se estava escondida."""
+    if not self.acoesTelas[indice].isChecked():
+      self.acoesTelas[indice].setChecked(True)
+    self.stackedWidget.setCurrentIndex(indice)
 
   def aoReceberDeteccao(self, deteccao):
     pares = registrarDeteccao_useCase(deteccao, self.repositorio)
@@ -984,7 +1056,7 @@ class MainWindow(QMainWindow):
         url_servidor = self.urlServidorAtual
       self.urlServidorAtual = url_servidor
       self.webView.setUrl(QtCore.QUrl(url_servidor))
-      self.stackedWidget.setCurrentIndex(3)
+      self.abrirTela(3)
       self.mostrarToast(f'Abrindo {url_servidor} no AbaTrack')
     except Exception as e:
       self.mostrarAviso('Erro ao abrir URL do servidor', str(e))
