@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import os
 import sys
+import json
 
 from aplicacao.use_cases import *
 from aplicacao.deteccao_aeronave import registrarDeteccao_useCase
@@ -283,6 +284,9 @@ class MainWindow(QMainWindow):
 
     self.stackedWidget.addWidget(self.tela2)
 
+    self.mapa_pronto = False
+    self.mapaView.loadFinished.connect(lambda ok: setattr(self, 'mapa_pronto', ok))
+
     # ------------------- TELA 3 (Cubo 3D e Giro) -------------------
     self.tela3 = QWidget()
     layoutTela3 = QHBoxLayout(self.tela3)
@@ -388,6 +392,24 @@ class MainWindow(QMainWindow):
     self.telaImagens.adicionarImagem(imagem)
     self.mostrarToast('Nova imagem recebida!')
 
+    
+  def atualizarAviaoNoMapa(self, icao, lat, lon, alt):
+    if not self.mapa_pronto:
+        return
+
+    velocidade = (
+        self.repositorio.velocidade[-1]
+        if self.repositorio.velocidade
+        else 0
+    )
+
+    js = (
+        f'atualizarAviao({json.dumps(icao)}, '
+        f'{lat}, {lon}, {alt}, {velocidade});'
+    )
+
+    self.mapaView.page().runJavaScript(js)
+
   def centralizarNaTela(self):
     qr = self.frameGeometry()
     cp = QDesktopWidget().availableGeometry().center()
@@ -483,6 +505,7 @@ class MainWindow(QMainWindow):
       self.thread.pacoteGiro.connect(self.atualizarLabelDadosGiro)
       self.thread.deteccaoRecebida.connect(self.aoReceberDeteccao)
       self.thread.mensagemOrange.connect(self.aoReceberMensagemOrange)
+      self.thread.pacoteAviao.connect(self.atualizarAviaoNoMapa)
 
       self.thread.start()
 
@@ -942,6 +965,7 @@ class MainWindow(QMainWindow):
       mapa_path = os.path.join(
           os.path.dirname(os.path.abspath(__file__)), arquivo_mapa
       )
+      self.mapa_pronto = False
       self.mapaView.setUrl(QtCore.QUrl.fromLocalFile(mapa_path))
       self.mostrarToast(f'Mapa {arquivo_mapa} selecionado com sucesso!')
     except Exception as e:

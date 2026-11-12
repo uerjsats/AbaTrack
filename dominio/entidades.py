@@ -31,6 +31,7 @@ CAMPOS_PACOTE = (
 # chave do campo -> posicao no vetor do pacote (tabela hash em vez de indices magicos)
 INDICE_CAMPO = {campo.chave: i for i, campo in enumerate(CAMPOS_PACOTE)}
 
+
 class RepositorioTelemetria:
     def __init__(self):
         self.pacotesDados = []
@@ -47,6 +48,11 @@ class RepositorioTelemetria:
         self.tamanhopacote = []
         self.latitude = []
         self.longitude = []
+
+        # NOVO: armazena a velocidade calculada a partir do GPS.
+        # Unidade recomendada: km/h.
+        self.velocidade = []
+
         self.sats = []
         self.roll = []
         self.pitch = []
@@ -75,6 +81,7 @@ class RepositorioTelemetria:
         else:
             return "Nenhum dado registrado no repositorio."
 
+
 class ImagemTelemetria:
     """Imagem JPEG recebida da estacao de solo.
 
@@ -82,6 +89,7 @@ class ImagemTelemetria:
     pacote de telemetria recebido quando a imagem chegou (None se ainda nao
     havia nenhum). Serve para saber onde o satelite estava nesse momento.
     """
+
     def __init__(self, dadosJpeg: bytes, horario, caminho=None, indicePacote=None):
         self.dadosJpeg = dadosJpeg
         self.horario = horario
@@ -138,10 +146,10 @@ class RegistroAeronave:
         return None if self.chegada is None else self.chegada - self.ts
 
 
-class ConfigsComunicacao: 
+class ConfigsComunicacao:
     def __init__(self, portaArduino, baudRate):
         self.portaArduino = portaArduino
         self.baudRate = baudRate
-    
+
     def __str__(self):
-        return (f"Porta: {self.portaArduino} Baud Rate: {self.baudRate}")
+        return f"Porta: {self.portaArduino} Baud Rate: {self.baudRate}"

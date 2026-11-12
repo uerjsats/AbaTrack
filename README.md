@@ -202,6 +202,11 @@ Projeto desenvolvido em **2025** por:
 - **Kataryne Cunha**  
 - **Thiago Martins**
 
+Tela de Recepção de imagens via LoRa (2026):
+- **Caio Fitipaldi**
+- **Asaf Teixeira**
+- **Vitor Wilson**
+
 Equipe de Computador de Bordo — **UERJ SATS**
 
 
