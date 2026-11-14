@@ -201,13 +201,13 @@ O AbaTrack é utilizado como software de apoio às missões da **UERJ SATS**, in
 
 Projeto desenvolvido em **2025** por:
 
-- **Kataryne Cunha**  
-- **Thiago Martins**
+- **Kataryne Cunha**  Linkedin: https://www.linkedin.com/in/katarynecunha/  | 
+- **Thiago Martins**  Linkedin: https://www.linkedin.com/in/thiago-martins-pinho/ |
 
 Tela de Recepção de imagens via LoRa (2026):
-- **Caio Fitipaldi**
-- **Asaf Teixeira**
-- **Vitor Wilson**
+- **Caio Fitipaldi** Linkedin: https://www.linkedin.com/in/caio-fitipaldi-2a7803322 | Github: https://github.com/Caio-Fitipaldi
+- **Asaf Teixeira**  Linkedin: https://www.linkedin.com/in/asaf-teixeira-7a4306330/ | Github: https://github.com/asafTeixeira
+- **Vitor Wilson**   Linkedin: https://www.linkedin.com/in/vitorwilson  | Github: https://github.com/vitorwilson
 
 Equipe de Computador de Bordo — **UERJ SATS**
 
