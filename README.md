@@ -114,6 +114,7 @@ As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são c
   - Temperatura  
   - Pressão  
   - Altitude  
+- **CSV Payload** (Arquivo > Salvar Dados > Salvar CSV Payload) — dados da carga útil (ADS-B): uma linha por posição de aeronave recebida do Orange Pi, gravada em `dados_salvos/adsb/payload_AAAA-MM-DD_HH-MM-SS.csv`: sessão, seq, ICAO, hora no Orange, hora de chegada no PC, latitude, longitude, altitude (ft e m), velocidade (kt e km/h), rumo (com a origem: `adsb` ou `estimado`) e latência
 - **PNG** — Salvamento individual dos gráficos:
   - Temperatura  
   - Pressão  

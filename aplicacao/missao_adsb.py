@@ -72,3 +72,40 @@ def registrarMensagemOrange_useCase(msg, repositorio: RepositorioTelemetria, ban
     if banco is not None:
         banco.registrar(msg, repositorio.sessaoOrange)
     return resultado
+
+
+CABECALHO_CSV_ADSB = (
+    "sessao", "seq", "icao24", "hora_orange", "chegada_pc", "latitude", "longitude",
+    "altitude_ft", "altitude_m", "velocidade_kt", "velocidade_kmh",
+    "rumo_graus", "rumo_origem", "latencia_s",
+)
+
+
+def linhasCsvAdsb(registros):
+    """Cabecalho e uma linha por registro AC, na ordem em que chegaram.
+    rumo_origem diz se o rumo veio do ADS-B ou foi estimado pelo AbaTrack."""
+    from datetime import datetime
+
+    def hora(epoch):
+        try:
+            return datetime.fromtimestamp(epoch).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        except (OverflowError, OSError, ValueError, TypeError):
+            return ""
+
+    linhas = [CABECALHO_CSV_ADSB]
+    for r in registros:
+        if r.rumo is None:
+            origem = ""
+        else:
+            origem = "estimado" if r.rumoEstimado else "adsb"
+        latencia = r.latencia
+        linhas.append((
+            r.sessao, r.seq, r.icao24, hora(r.ts),
+            "" if r.chegada is None else hora(r.chegada),
+            r.latitude, r.longitude,
+            r.altitudeFt, round(r.altitudeFt * 0.3048, 1),
+            r.velocidadeKt, round(r.velocidadeKt * 1.852, 1),
+            "" if r.rumo is None else round(r.rumo, 1), origem,
+            "" if latencia is None else round(latencia, 3),
+        ))
+    return linhas

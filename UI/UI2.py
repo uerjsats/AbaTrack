@@ -6,7 +6,7 @@ import json
 
 from aplicacao.use_cases import *
 from aplicacao.deteccao_aeronave import registrarDeteccao_useCase
-from aplicacao.missao_adsb import registrarMensagemOrange_useCase
+from aplicacao.missao_adsb import linhasCsvAdsb, registrarMensagemOrange_useCase
 from dominio.entidades import *
 from folium import Map, Marker
 import folium
@@ -664,6 +664,26 @@ class MainWindow(QMainWindow):
     except Exception as e:
       self.mostrarAviso('Erro ao salvar dados', str(e))
 
+  def salvarAdsbCSV(self):
+    """CSV com todas as posições de aeronaves recebidas do Orange Pi (ADS-B)."""
+    try:
+      registros = self.repositorio.registrosAdsb
+      if not registros:
+        self.mostrarAviso('Sem dados', 'Nenhum dado de ADS-B recebido ainda.')
+        return
+      pasta = diretorioAdsb()
+      os.makedirs(pasta, exist_ok=True)
+      nome = f"payload_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+      caminho = os.path.join(pasta, nome)
+      with open(caminho, 'w', newline='', encoding='utf-8') as arquivo:
+        csv.writer(arquivo).writerows(linhasCsvAdsb(registros))
+      self.mostrarAviso(
+          'Sucesso',
+          f'{len(registros)} registros de ADS-B salvos em: {caminho}',
+      )
+    except Exception as e:
+      self.mostrarAviso('Erro ao salvar ADS-B', str(e))
+
   def salvarImagemMapa(self):
     try:
       screenshot_path = os.path.join(os.getcwd(), 'mapa_screenshot.png')
@@ -709,6 +729,8 @@ class MainWindow(QMainWindow):
     acaoSalvarTXT.triggered.connect(self.salvarDados)
     acaoSalvarCSV = submenuSalvarDados.addAction('Salvar em CSV')
     acaoSalvarCSV.triggered.connect(self.salvarDadosCSV)
+    acaoSalvarCSVAdsb = submenuSalvarDados.addAction('Salvar CSV Payload')
+    acaoSalvarCSVAdsb.triggered.connect(self.salvarAdsbCSV)
 
     submenuSalvarGraficos = menuArquivo.addMenu('Salvar Gráficos')
     acaoSalvarGraficoTemp = submenuSalvarGraficos.addAction(
