@@ -84,15 +84,22 @@ class AdaptadorArduino(QObject):
 
         try:
             limite = time.monotonic() + self.timeout
-            while not self._linhas and time.monotonic() < limite:
-                dados = self.conexao.read(max(1, self.conexao.in_waiting))
-                agora = time.monotonic()
-                if dados:
-                    self._ultimoByte = agora
-                    self.protocolo.alimentar(dados)
-                elif (self.protocolo.recebendoImagem
-                        and agora - self._ultimoByte > TIMEOUT_IMAGEM):
-                    self.protocolo.abortar("timeout: imagem interrompida")
+            while True:
+                # Esvazia sempre o que ja esta na porta, mesmo com linhas na fila:
+                # se a leitura espera a fila esvaziar, o buffer do driver (4 KB)
+                # estoura durante uma rajada e a foto chega corrompida.
+                espera = self.conexao.in_waiting
+                if espera or not self._linhas:
+                    dados = self.conexao.read(max(1, espera))
+                    agora = time.monotonic()
+                    if dados:
+                        self._ultimoByte = agora
+                        self.protocolo.alimentar(dados)
+                    elif (self.protocolo.recebendoImagem
+                            and agora - self._ultimoByte > TIMEOUT_IMAGEM):
+                        self.protocolo.abortar("timeout: imagem interrompida")
+                if self._linhas or time.monotonic() >= limite:
+                    break
 
             if not self._linhas:
                 return None

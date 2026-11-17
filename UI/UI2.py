@@ -13,6 +13,7 @@ import folium
 from integracao.adaptador_arduino import AdaptadorArduino
 from integracao.armazenamento_imagens import diretorioImagens, salvarImagemOriginal
 from integracao.banco_adsb import BancoAdsb, diretorioAdsb
+from integracao.portas_seriais import MonitorPortas
 from integracao.salvar_graficos import salvarGrafico
 import numpy as np
 from PIL import Image, ImageOps
@@ -44,7 +45,6 @@ from PyQt5.QtWidgets import (
 )
 import pyqtgraph.opengl as gl
 from pyqtgraph.Qt import QtCore, QtGui
-import serial.tools.list_ports
 from UI.graficosGenericos import GraficoDinamicoGenerico
 from UI.tela_imagens import TelaImagens
 from UI.tela_serial import TelaSerial
@@ -90,6 +90,7 @@ class MainWindow(QMainWindow):
     self.dadosRecebidos = False
     self.avisoDesconexaoMostrado = False
     self.urlServidorAtual = 'http://www.missao.atlas.com'
+    self.portasDisponiveis = []  # atualizada pelo MonitorPortas (thread propria)
 
     # Configuração das Barras de Menu
     self.menuBar = self.menuBar()
@@ -348,13 +349,11 @@ class MainWindow(QMainWindow):
     self.layoutPrincipal.addWidget(self.stackedWidget)
 
     # Configurações de Timers e Notificações
-    self.timer = QTimer(self)
-    self.timer.timeout.connect(
-        lambda: self.atualizarSubmenuPorta(
-            self.menuConfiguracoes.findChild(QMenu, 'Porta')
-        )
-    )
-    self.timer.start(1000)
+    # A lista de portas COM e consultada fora da thread da interface: no
+    # Windows ela pode demorar segundos quando um USB novo e conectado.
+    self.monitorPortas = MonitorPortas(parent=self)
+    self.monitorPortas.portasMudaram.connect(self.aoMudarPortas)
+    self.monitorPortas.iniciar()
 
     self.settings = QSettings('AbaTrack', 'AbaTrack')
     self.criarMenuTelas()
@@ -489,30 +488,11 @@ class MainWindow(QMainWindow):
     self.move(qr.topLeft())
 
   def listarPortas(self):
-        portas = [porta.device for porta in serial.tools.list_ports.comports()]
-        # O com0com 2.x registra as portas virtuais na classe de dispositivo
-        # "CNCPorts", que o comports() do pyserial NAO enumera. O registro
-        # HKLM\HARDWARE\DEVICEMAP\SERIALCOMM lista TODAS as portas COM (inclusive
-        # as virtuais), entao mesclamos as duas fontes para que pares com0com
-        # (COM12/COM13, COM14/COM15, ...) aparecam no menu de selecao de porta.
-        try:
-            import winreg
-            chave = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                                   r"HARDWARE\DEVICEMAP\SERIALCOMM")
-            try:
-                i = 0
-                while True:
-                    _, valor, _ = winreg.EnumValue(chave, i)
-                    if valor not in portas:
-                        portas.append(valor)
-                    i += 1
-            except OSError:
-                pass  # fim da enumeracao
-            finally:
-                winreg.CloseKey(chave)
-        except OSError:
-            pass  # sem a chave (ex.: nenhuma porta) — segue so com comports()
-        return portas
+    return list(self.portasDisponiveis)
+
+  def aoMudarPortas(self, portas):
+    self.portasDisponiveis = portas
+    self.atualizarSubmenuPorta(self.menuConfiguracoes.findChild(QMenu, 'Porta'))
 
   def atualizarLabelDadoBruto(self, ultimoPacoteDados):
     self.dadosRecebidos = True
@@ -1002,6 +982,7 @@ class MainWindow(QMainWindow):
         self.mostrarAviso('Erro ao enviar comando', str(e))
 
   def closeEvent(self, event):
+    self.monitorPortas.parar()
     if self.bancoAdsb is not None:
       self.bancoAdsb.fechar()
     if self.dadosRecebidos:
@@ -1042,7 +1023,7 @@ class MainWindow(QMainWindow):
       submenuSelecionarServidor.clear()
       servidores_disponiveis = [
           ('LASC 26', 'http://www.missao.atlas.com'),
-          ('CubeDesign 2026', 'https://cubedesign.unsam.edu.ar/')
+          ('CubeDesign 2026', 'http://www.missao.maverick.com')
       ]
       acaoGroupServidor = QActionGroup(self)
       for nome, url in servidores_disponiveis:

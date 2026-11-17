@@ -1,0 +1,114 @@
+diff -ru C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/lorarx/lorarx.cpp obc_ldr/lorarx/lorarx.cpp
+--- C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/lorarx/lorarx.cpp	2026-11-16 14:53:22.443954500 -0300
++++ obc_ldr/lorarx/lorarx.cpp	2026-11-16 14:53:48.812786000 -0300
+@@ -135,6 +135,7 @@
+     float roll_deg    = dados.roll / 100.0f;
+     float pitch_deg   = dados.pitch / 100.0f;
+     float yaw_deg     = dados.yaw / 100.0f;
++    float ldr_deg     = dados.anguloLdr / 10.0f;
+ 
+     float tempBat1 = bateria.valido ? bateria.temperatura1 : dados.temperaturaBateria1 / 100.0f;
+     float tempBat2 = bateria.valido ? bateria.temperatura2 : dados.temperaturaBateria2 / 100.0f;
+@@ -152,6 +153,7 @@
+     Serial.print(roll_deg, 2); Serial.print(":");
+     Serial.print(pitch_deg, 2); Serial.print(":");
+     Serial.print(yaw_deg, 2); Serial.print(":");
++    Serial.print(ldr_deg, 1); Serial.print(":");
+     Serial.print(tempBat1, 2); Serial.print(":");
+     Serial.print(tempBat2, 2); Serial.print(":");
+     Serial.print(tensao, 3); Serial.print(":");
+diff -ru C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/lorarx/lorarx.h obc_ldr/lorarx/lorarx.h
+--- C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/lorarx/lorarx.h	2026-11-16 14:53:22.441954400 -0300
++++ obc_ldr/lorarx/lorarx.h	2026-11-16 14:53:48.810780000 -0300
+@@ -61,7 +61,10 @@
+ 
+     // 11. Yaw (graus × 100)
+     int16_t yaw;
+-    
++
++    // 12. Ângulo do LDR, vindo do Controle de Atitude (graus × 10)
++    int16_t anguloLdr;
++
+     // 13. Temperatura da bateria 1 (°C × 100)
+     int16_t temperaturaBateria1;
+ 
+Only in obc_ldr: mudancas_ldr.diff
+diff -ru C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/obc/sensores.cpp obc_ldr/obc/sensores.cpp
+--- C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/obc/sensores.cpp	2026-11-16 14:53:22.448569100 -0300
++++ obc_ldr/obc/sensores.cpp	2026-11-16 14:53:48.815787700 -0300
+@@ -13,6 +13,13 @@
+ extern QueueHandle_t filaTelemetria;
+ extern sensorsData dados;
+ 
++// Ângulo do LDR (graus), atualizado a partir do Controle de Atitude
++volatile float anguloLdrGraus = 0.0f;
++
++// Descomente para testar a recepção no AbaTrack sem os sensores ligados:
++// todos os campos do pacote saem com valores fictícios.
++//#define TESTE_VALORES_FICTICIOS
++
+ //Definição GPS
+ TinyGPSPlus gps; 
+ HardwareSerial GPSSerial(1); 
+@@ -453,6 +460,32 @@
+         dados.pitch = gyroY * 100.0f;
+         dados.yaw   = gyroZ * 100.0f;
+ 
++        // Ângulo do LDR (Controle de Atitude)
++        dados.anguloLdr = (int16_t)(anguloLdrGraus * 10.0f);
++
++#ifdef TESTE_VALORES_FICTICIOS
++        {
++            float t = millis() / 1000.0f;
++            dados.temperatura = (int16_t)((25.0f + 2.0f * sinf(t / 10.0f)) * 100.0f);
++            dados.umidade     = (int16_t)((40.0f + 5.0f * cosf(t / 20.0f)) * 100.0f);
++            dados.altitude    = (int16_t)((100.0f + 10.0f * t) * 10.0f);
++            dados.pressao     = 101325UL - (uint32_t)(t * 12.0f);
++            dados.latitude    = (int32_t)((-22.9068f + 0.0001f * t) * 10000000.0f);
++            dados.longitude   = (int32_t)((-43.1729f + 0.0001f * t) * 10000000.0f);
++            dados.sats        = 7;
++            dados.roll        = (int16_t)(1000.0f * sinf(t / 5.0f));
++            dados.pitch       = (int16_t)(1000.0f * cosf(t / 5.0f));
++            dados.yaw         = (int16_t)(fmodf(t * 5.0f, 300.0f) * 100.0f);
++            anguloLdrGraus    = 45.0f + 20.0f * sinf(t / 8.0f);
++            dados.anguloLdr   = (int16_t)(anguloLdrGraus * 10.0f);
++            dados.temperaturaBateria1 = 3000;   // 30,00 °C
++            dados.temperaturaBateria2 = 3100;   // 31,00 °C
++            dados.tensao      = 7400;           // 7,400 V
++            dados.corrente    = 1200;           // 1,200 A
++        }
++        vTaskDelay(pdMS_TO_TICKS(500));         // sem isso a fila encheria de valores iguais
++#endif
++
+         // Envia para a fila
+         xQueueSend(filaTelemetria, &dados, 200);
+ 
+diff -ru C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/obc/sensores.h obc_ldr/obc/sensores.h
+--- C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/obc/sensores.h	2026-11-16 14:53:22.449569600 -0300
++++ obc_ldr/obc/sensores.h	2026-11-16 14:53:48.813779200 -0300
+@@ -30,6 +30,10 @@
+ //Calcula e retorna a altitude em Metros (m) baseada na pressão do nível do mar (ex: 101325.0f)
+ float bme_get_altitude(float sea_level_Pa);
+ 
++// Ângulo do LDR em graus. Quem recebe o valor do Controle de Atitude escreve aqui;
++// a task de sensores copia para o pacote de telemetria.
++extern volatile float anguloLdrGraus;
++
+ //GPS 
+ void gpsInit(); 
+ void gpsUpdate(float &latitude, float &longitude, int &sats); 
+diff -ru C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/obc/telemetria.h obc_ldr/obc/telemetria.h
+--- C:/Users/katar/AppData/Local/Temp/claude/41c913ae8b95edaf/45c95940-938e-4428-b4c7-11443ba12843/scratchpad/obc_ldr_antes/obc/telemetria.h	2026-11-16 14:53:22.447569700 -0300
++++ obc_ldr/obc/telemetria.h	2026-11-16 14:53:48.808214000 -0300
+@@ -179,7 +179,10 @@
+ 
+     // 11. Yaw (graus × 100)
+     int16_t yaw;
+-    
++
++    // 12. Ângulo do LDR, vindo do Controle de Atitude (graus × 10)
++    int16_t anguloLdr;
++
+     // 13. Temperatura da bateria 1 (°C × 100)
+     int16_t temperaturaBateria1;
+ 

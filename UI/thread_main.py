@@ -2,7 +2,7 @@
 from integracao.adaptador_arduino import AdaptadorArduino
 from aplicacao.use_cases import *
 from aplicacao.deteccao_aeronave import ehLinhaDeteccao, interpretarLinhaDeteccao
-from aplicacao.mensagens_orange import ehMensagemOrange, lerMensagemOrange
+from aplicacao.mensagens_orange import TIPOS_ORANGE, ehMensagemOrange, lerMensagemOrange
 from dominio.entidades import *
 from PyQt5.QtCore import QThread, pyqtSignal
 import time
@@ -78,6 +78,14 @@ class ThreadPrincipal(QThread):
         if not texto.lower().startswith(('missão:', 'missao:')):
             return False
 
+        # O firmware novo da base imprime "missão: <linha do Orange>" no lugar de
+        # "ORANGE:<linha>". O que nao e a posicao de uma aeronave (VEREDITO, EVT,
+        # STATUS...) segue o caminho normal do Orange.
+        resto = texto.split(':', 1)[1].strip()
+        if resto.split(',', 1)[0].strip().upper() in TIPOS_ORANGE:
+            self.mensagemOrange.emit(lerMensagemOrange("ORANGE:" + resto))
+            return True
+
         try:
             d = [x.strip() for x in texto.split(':', 1)[1].split(',')]
             icao = d[0].upper()
@@ -113,8 +121,7 @@ class ThreadPrincipal(QThread):
 
                 # Linha de missão (ADS-B): não passa pelo fluxo normal de telemetria
                 if pacote and self._tentaProcessarAviao(pacote):
-                    self.msleep(10)
-                    continue
+                    continue   # sem dormir: com rajada de linhas a serial precisa ser lida
 
                 # Serial -> Repositorio
                 if pacote:

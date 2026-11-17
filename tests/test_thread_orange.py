@@ -65,6 +65,25 @@ class TestThreadRoteiaOrange(unittest.TestCase):
         self.assertEqual(mensagens, [])
         self.assertEqual(len(deteccoes), 1)
 
+    def test_formato_missao_do_firmware_novo_chega_como_orange(self):
+        repo, mensagens, _, _ = self.rodar([
+            "missão: VEREDITO,CLANDESTINA,-22.9068,-43.1729",
+            "missão: EVT,BOOT",
+        ])
+        self.assertEqual([m.tipo for m in mensagens], ["VEREDITO", "EVT"])
+
+    def test_posicao_de_aviao_do_mapa_nao_vira_orange(self):
+        avioes = []
+        adaptador = AdaptadorFalso(RepositorioTelemetria(), ["missão: 40621D, -22.9, -43.2, 38000"])
+        thread = ThreadPrincipal(adaptador)
+        adaptador.thread = thread
+        mensagens = []
+        thread.mensagemOrange.connect(mensagens.append)
+        thread.pacoteAviao.connect(lambda *a: avioes.append(a))
+        thread.run()
+        self.assertEqual(mensagens, [])
+        self.assertEqual(len(avioes), 1)
+
     def test_chegam_todas_mesmo_com_rajada(self):
         linhas = [f"ORANGE:AC,{i},1000.0,40621D,-22.9,-43.2,38000,450" for i in range(1, 201)]
         _, mensagens, _, _ = self.rodar(linhas)
