@@ -21,6 +21,8 @@ class ThreadPrincipal(QThread):
     pacoteUmidade = pyqtSignal(float)
     pacoteAviao = pyqtSignal(str, float, float, int, float)
     # icao, lat, lon, alt, velocidade_kmh
+    posicaoMissao = pyqtSignal(str, float, float, int, float)
+    # icao, lat, lon, alt_ft, gs_kt da linha "missão:" (-1 se a linha nao trouxe o gs)
     deteccaoRecebida = pyqtSignal(object)  # DeteccaoAeronave (formato antigo DET)
     mensagemOrange = pyqtSignal(object)    # MensagemOrange (linhas ORANGE: da base)
 
@@ -97,6 +99,17 @@ class ThreadPrincipal(QThread):
 
             velocidade = self.calcularVelocidadeAviao(icao, lat, lon)
             self.pacoteAviao.emit(icao, lat, lon, alt, velocidade)
+
+            # velocidade (gs, em nos) enviada pelo computador de bordo, se vier
+            gs = -1.0
+            if len(d) > 4 and d[4] != '':
+                try:
+                    gs = float(d[4])
+                except ValueError:
+                    gs = -1.0
+                if not math.isfinite(gs) or gs < 0:
+                    gs = -1.0
+            self.posicaoMissao.emit(icao, lat, lon, alt, gs)
 
         except (IndexError, ValueError) as e:
             print(f"Linha missão inválida: {texto}. Erro: {e}")

@@ -1,10 +1,16 @@
 """Missao ADS-B no AbaTrack: o que fazer com cada mensagem ORANGE: recebida."""
 
 import math
+import time
 from collections import deque
 
 from aplicacao.deteccao_aeronave import registrarDeteccao_useCase
-from dominio.entidades import TAMANHO_TRILHA, RegistroAeronave, RepositorioTelemetria
+from dominio.entidades import (
+    TAMANHO_TRILHA,
+    PosicaoMissao,
+    RegistroAeronave,
+    RepositorioTelemetria,
+)
 
 # Deslocamento minimo (graus, ~11 m) para estimar o rumo entre duas posicoes.
 DESLOCAMENTO_MINIMO_GRAUS = 1e-4
@@ -107,5 +113,62 @@ def linhasCsvAdsb(registros):
             r.velocidadeKt, round(r.velocidadeKt * 1.852, 1),
             "" if r.rumo is None else round(r.rumo, 1), origem,
             "" if latencia is None else round(latencia, 3),
+        ))
+    return linhas
+
+
+def registrarPosicaoMissao_useCase(icao24, latitude, longitude, altitudeFt,
+                                   repositorio: RepositorioTelemetria, banco=None, chegada=None,
+                                   velocidadeKt=None):
+    """Guarda a posicao de uma linha "missão: icao, lat, lon, alt".
+
+    Devolve a PosicaoMissao gravada, ou None se foi ignorada por ja estar salva:
+    a mesma posicao que acabou de chegar como ORANGE:AC (a base imprime as duas
+    linhas para cada aeronave) ou uma posicao repetida da mesma aeronave."""
+    icao24 = str(icao24).strip().upper()
+    atual = repositorio.aeronaves.get(icao24)
+    if atual is not None and (atual.latitude, atual.longitude) == (latitude, longitude):
+        return None
+    anterior = repositorio.ultimasPosicoesMissao.get(icao24)
+    if anterior is not None and (anterior.latitude, anterior.longitude) == (latitude, longitude):
+        return None
+
+    rumo, estimado = None, False
+    if anterior is not None and (abs(latitude - anterior.latitude)
+                                 + abs(longitude - anterior.longitude)) >= DESLOCAMENTO_MINIMO_GRAUS:
+        rumo = rumoEntre(anterior.latitude, anterior.longitude, latitude, longitude)
+        estimado = True
+
+    posicao = PosicaoMissao(time.time() if chegada is None else chegada, icao24,
+                            latitude, longitude, int(altitudeFt), rumo, estimado, velocidadeKt)
+    repositorio.ultimasPosicoesMissao[icao24] = posicao
+    repositorio.posicoesMissao.append(posicao)
+    if banco is not None:
+        banco.registrarPosicaoMissao(posicao)
+    return posicao
+
+
+CABECALHO_CSV_MISSAO = (
+    "chegada_pc", "icao24", "latitude", "longitude", "altitude_ft", "altitude_m",
+    "velocidade_kt", "velocidade_kmh", "rumo_graus", "rumo_origem",
+)
+
+
+def linhasCsvPosicoesMissao(posicoes):
+    """Cabecalho e uma linha por posicao vinda de "missão:"."""
+    from datetime import datetime
+
+    linhas = [CABECALHO_CSV_MISSAO]
+    for p in posicoes:
+        try:
+            hora = datetime.fromtimestamp(p.chegada).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        except (OverflowError, OSError, ValueError, TypeError):
+            hora = ""
+        linhas.append((
+            hora, p.icao24, p.latitude, p.longitude, p.altitudeFt, round(p.altitudeFt * 0.3048, 1),
+            "" if p.velocidadeKt is None else round(p.velocidadeKt, 1),
+            "" if p.velocidadeKt is None else round(p.velocidadeKt * 1.852, 1),
+            "" if p.rumo is None else round(p.rumo, 1),
+            "" if p.rumo is None else ("estimado" if p.rumoEstimado else "adsb"),
         ))
     return linhas

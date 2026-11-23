@@ -84,6 +84,24 @@ class TestThreadRoteiaOrange(unittest.TestCase):
         self.assertEqual(mensagens, [])
         self.assertEqual(len(avioes), 1)
 
+    def test_linha_missao_com_velocidade_emite_o_gs_para_salvar(self):
+        repo = RepositorioTelemetria()
+        adaptador = AdaptadorFalso(repo, [
+            "missão: 40621D, -22.9, -43.2, 30000, 450",
+            "missão: 7788FF, -22.5, -43.0, 20000",           # sem gs
+            "missão: 7788FF, -22.4, -43.0, 20000, lixo",     # gs invalido
+        ])
+        thread = ThreadPrincipal(adaptador)
+        adaptador.thread = thread
+        emitidas, mapa = [], []
+        thread.posicaoMissao.connect(lambda *a: emitidas.append(a))
+        thread.pacoteAviao.connect(lambda *a: mapa.append(a))
+        thread.run()
+        self.assertEqual(emitidas, [("40621D", -22.9, -43.2, 30000, 450.0),
+                                    ("7788FF", -22.5, -43.0, 20000, -1.0),
+                                    ("7788FF", -22.4, -43.0, 20000, -1.0)])
+        self.assertEqual(len(mapa), 3)      # o sinal do mapa segue como antes
+
     def test_chegam_todas_mesmo_com_rajada(self):
         linhas = [f"ORANGE:AC,{i},1000.0,40621D,-22.9,-43.2,38000,450" for i in range(1, 201)]
         _, mensagens, _, _ = self.rodar(linhas)

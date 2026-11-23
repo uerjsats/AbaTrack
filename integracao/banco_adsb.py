@@ -13,6 +13,7 @@ import sqlite3
 import threading
 from datetime import datetime
 
+from dominio.entidades import PosicaoMissao
 from integracao.armazenamento_imagens import diretorioImagens
 
 VERSAO_ESQUEMA = 1
@@ -36,6 +37,17 @@ TABELAS = {
         ("gs_kt", "INTEGER", "velocidade em nos"),
         ("rumo_graus", "REAL", "rumo em graus (0 a 360); do ADS-B ou estimado entre duas posicoes"),
         ("rumo_estimado", "INTEGER", "1 se o rumo foi calculado pelo AbaTrack, 0 se veio do ADS-B"),
+    ],
+    "posicoes_missao": [
+        ("id", "INTEGER PRIMARY KEY AUTOINCREMENT", "identificador da linha"),
+        ("chegada", "REAL NOT NULL", "hora em que o PC recebeu a linha (epoch, segundos)"),
+        ("icao24", "TEXT NOT NULL", "endereco ICAO da aeronave"),
+        ("lat", "REAL NOT NULL", "latitude em graus"),
+        ("lon", "REAL NOT NULL", "longitude em graus"),
+        ("alt_ft", "INTEGER", "altitude em pes"),
+        ("gs_kt", "REAL", "velocidade em nos, como enviada na linha missão:; vazio se a linha nao trouxe"),
+        ("rumo_graus", "REAL", "rumo em graus, estimado entre duas posicoes; vazio na primeira de cada aeronave"),
+        ("rumo_estimado", "INTEGER", "1 se o rumo foi calculado pelo AbaTrack"),
     ],
     "status_orange": [
         ("id", "INTEGER PRIMARY KEY AUTOINCREMENT", "identificador da linha"),
@@ -153,6 +165,10 @@ class BancoAdsb:
         """Enfileira a mensagem; a gravacao acontece na thread do banco."""
         self._fila.put((msg, sessao))
 
+    def registrarPosicaoMissao(self, posicao):
+        """Enfileira uma posicao vinda de uma linha "missão: icao, lat, lon, alt"."""
+        self._fila.put((posicao, 0))
+
     def descarregar(self):
         """Espera tudo o que ja foi enfileirado chegar ao arquivo."""
         self._fila.join()
@@ -174,7 +190,7 @@ class BancoAdsb:
             ("versao_esquema", str(VERSAO_ESQUEMA)),
             ("software", "AbaTrack"),
             ("criado_em", criadoEm.isoformat(timespec="seconds")),
-            ("origem", "linhas ORANGE: impressas pela base (firmware do OBC)"),
+            ("origem", "linhas ORANGE: e missão: impressas pela base (firmware do OBC)"),
         ])
         con.commit()
 
@@ -205,6 +221,13 @@ class BancoAdsb:
 
     @staticmethod
     def _gravar(con, msg, sessao):
+        if isinstance(msg, PosicaoMissao):
+            con.execute(
+                "INSERT INTO posicoes_missao (chegada, icao24, lat, lon, alt_ft, gs_kt, rumo_graus, rumo_estimado) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (msg.chegada, msg.icao24, msg.latitude, msg.longitude, msg.altitudeFt,
+                 msg.velocidadeKt, msg.rumo, int(msg.rumoEstimado)))
+            return
         d = msg.dados
         tipo = msg.tipo
         if tipo == "AC":

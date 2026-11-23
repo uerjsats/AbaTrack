@@ -132,7 +132,7 @@
 // MAPA
 // ================================================================
 
-var CENTRO = [-22.546472, -42.444504];
+var CENTRO = [-34.58235100307061, -58.519255186507856];
 
 var map = L.map("map", {
     center: CENTRO,
@@ -157,14 +157,6 @@ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 var marker = L.marker(CENTRO).addTo(map);
 
 marker.bindPopup("<b>Satélite AbaTrack</b>");
-
-var circle = L.circle(CENTRO, {
-    color: "blue",
-    fillColor: "blue",
-    fillOpacity: 0.2,
-    radius: 2000
-}).addTo(map);
-
 
 // Controle de acompanhamento do satélite
 
@@ -192,8 +184,6 @@ function atualizarPosicao(lat, lng) {
     }
 
     marker.setLatLng([lat, lng]);
-
-    circle.setLatLng([lat, lng]);
 
     if (seguirSatelite) {
         map.setView([lat, lng]);

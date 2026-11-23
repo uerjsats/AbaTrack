@@ -16,6 +16,7 @@ O Abatrack é um software de telemetria desenvolvido pela equipe de Computador d
 
 ### Tela 2 — GPS e Mapa
 - Visualização de dados GPS (latitude, longitude, número de satélites)
+- Painel ADS-B abaixo dos dados do GPS: número de aeronaves, total de registros e a lista de todas as aeronaves, com rolagem (ICAO, altitude, velocidade, rumo e posição). O rumo estimado pelo AbaTrack aparece com `~`
 - Mapa interativo offline com marcador de posição em tempo real
 - Múltiplos mapas disponíveis:
   - Teste de Voo  2025
@@ -77,7 +78,8 @@ Como o AbaTrack liga o veredito à foto:
 #### Banco de dados do ADS-B
 
 - **Onde:** `dados_salvos/adsb/adsb_AAAA-MM-DD_HH-MM-SS.db`, ao lado do executável. O arquivo é criado quando chega a primeira linha do Orange, então outras missões não geram arquivo vazio.
-- **Tabelas:** `aeronaves`, `status_orange`, `opstate`, `eventos`, `confirmacoes`, `vereditos`, `log_cru` e `meta`. O dicionário de dados completo fica em `ESQUEMA_adsb.md`, gravado na mesma pasta.
+- **Linhas `missão:`:** a posição que chega como `missão: icao, lat, lon, alt` (sem seq nem hora do Orange) também é salva, na tabela `posicoes_missao` (ICAO, latitude, longitude, altitude, velocidade `gs` quando a linha traz e rumo estimado entre duas posições). Se a mesma posição acabou de chegar como `ORANGE:AC`, ela não é gravada de novo.
+- **Tabelas:** `aeronaves`, `posicoes_missao`, `status_orange`, `opstate`, `eventos`, `confirmacoes`, `vereditos`, `log_cru` e `meta`. O dicionário de dados completo fica em `ESQUEMA_adsb.md`, gravado na mesma pasta.
 - **Reprodutível:** a tabela `log_cru` guarda todas as linhas `ORANGE:` exatamente como chegaram, com a hora de chegada no PC, inclusive as malformadas. Dá para refazer qualquer análise a partir dela.
 - **Sem duplicados:** a tabela `aeronaves` ignora registros repetidos da mesma sessão e do mesmo `seq`, como os reenviados pelo `DUMP`.
 - **Sem travar a leitura:** a gravação roda numa thread própria, em lotes, e o arquivo `.db` já contém os dados durante a missão, então pode ser copiado sem fechar o AbaTrack.
@@ -114,7 +116,7 @@ As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são c
   - Temperatura  
   - Pressão  
   - Altitude  
-- **CSV Payload** (Arquivo > Salvar Dados > Salvar CSV Payload) — dados da carga útil (ADS-B): uma linha por posição de aeronave recebida do Orange Pi, gravada em `dados_salvos/adsb/payload_AAAA-MM-DD_HH-MM-SS.csv`: sessão, seq, ICAO, hora no Orange, hora de chegada no PC, latitude, longitude, altitude (ft e m), velocidade (kt e km/h), rumo (com a origem: `adsb` ou `estimado`) e latência
+- **CSV Payload** (Arquivo > Salvar Dados > Salvar CSV Payload) — dados da carga útil (ADS-B): uma linha por posição de aeronave recebida do Orange Pi, gravada em `dados_salvos/adsb/payload_AAAA-MM-DD_HH-MM-SS.csv`: sessão, seq, ICAO, hora no Orange, hora de chegada no PC, latitude, longitude, altitude (ft e m), velocidade (kt e km/h), rumo (com a origem: `adsb` ou `estimado`) e latência. As posições que chegam só como `missão:` saem em um segundo arquivo, `payload_missao_AAAA-MM-DD_HH-MM-SS.csv` (hora de chegada, ICAO, latitude, longitude, altitude, velocidade e rumo estimado)
 - **PNG** — Salvamento individual dos gráficos:
   - Temperatura  
   - Pressão  

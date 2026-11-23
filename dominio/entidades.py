@@ -74,6 +74,9 @@ class RepositorioTelemetria:
         self.eventosOrange = []       # (chegada, tipo, args)
         self.confirmacoesOrange = []  # (chegada, "ACK" ou "NAK", comando, args)
         self.sessaoOrange = 0         # numero da sessao, de ACK,START,<n>
+        # Posicoes de aeronaves que chegam como "missão: icao, lat, lon, alt"
+        self.posicoesMissao = []        # todas, sem repetidas
+        self.ultimasPosicoesMissao = {}  # icao24 -> ultima PosicaoMissao
 
     def __str__(self):
         if self.pacotesDados:
@@ -144,6 +147,25 @@ class RegistroAeronave:
     def latencia(self):
         """Segundos entre o registro no Orange e a chegada no PC (None sem relogio)."""
         return None if self.chegada is None else self.chegada - self.ts
+
+
+class PosicaoMissao:
+    """Posicao de uma aeronave vinda de uma linha "missão: icao, lat, lon, alt".
+
+    A linha nao traz seq, hora do Orange, velocidade nem rumo: guarda-se o que
+    veio e a hora de chegada no PC. O rumo, se aparece, foi estimado pelo
+    AbaTrack entre duas posicoes da mesma aeronave.
+    """
+    def __init__(self, chegada: float, icao24: str, latitude: float, longitude: float,
+                 altitudeFt: int, rumo=None, rumoEstimado: bool = False, velocidadeKt=None):
+        self.chegada = chegada
+        self.icao24 = icao24
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitudeFt = altitudeFt
+        self.rumo = rumo
+        self.rumoEstimado = rumoEstimado
+        self.velocidadeKt = velocidadeKt  # gs enviada na linha, em nos (None se nao veio)
 
 
 class ConfigsComunicacao:

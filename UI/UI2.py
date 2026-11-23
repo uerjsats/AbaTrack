@@ -6,7 +6,12 @@ import json
 
 from aplicacao.use_cases import *
 from aplicacao.deteccao_aeronave import registrarDeteccao_useCase
-from aplicacao.missao_adsb import linhasCsvAdsb, registrarMensagemOrange_useCase
+from aplicacao.missao_adsb import (
+    linhasCsvAdsb,
+    linhasCsvPosicoesMissao,
+    registrarMensagemOrange_useCase,
+    registrarPosicaoMissao_useCase,
+)
 from dominio.entidades import *
 from folium import Map, Marker
 import folium
@@ -37,6 +42,7 @@ from PyQt5.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSpacerItem,
     QStackedWidget,
@@ -274,6 +280,28 @@ class MainWindow(QMainWindow):
     )
     self.labelDadosGPS.setStyleSheet('font-size: 15px;')
     layoutContainerGPS.addWidget(self.labelDadosGPS)
+
+    # ADS-B: aeronaves recebidas do Orange Pi (mesmo painel do GPS)
+    self.labelAdsb = QLabel(self.textoCabecalhoAdsb())
+    self.labelAdsb.setStyleSheet('font-size: 13px;')
+    self.labelAdsb.setTextFormat(Qt.RichText)
+    layoutContainerGPS.addWidget(self.labelAdsb)
+
+    # Lista com todas as aeronaves; rola quando passa do tamanho do painel
+    self.labelListaAdsb = QLabel('')
+    self.labelListaAdsb.setStyleSheet('font-size: 12px;')
+    self.labelListaAdsb.setTextFormat(Qt.RichText)
+    self.labelListaAdsb.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+    self.scrollAdsb = QScrollArea()
+    self.scrollAdsb.setWidgetResizable(True)
+    self.scrollAdsb.setWidget(self.labelListaAdsb)
+    self.scrollAdsb.setFrameShape(QFrame.NoFrame)
+    self.scrollAdsb.setStyleSheet(
+        'QScrollArea { background: transparent; border: none; }'
+        'QScrollArea > QWidget > QWidget { background: transparent; }'
+    )
+    layoutContainerGPS.addWidget(self.scrollAdsb, stretch=1)
+    self._adsbSujo = False
     layoutTela2.addWidget(self.containerGPS)
 
     self.mapaView = QWebEngineView()
@@ -354,6 +382,11 @@ class MainWindow(QMainWindow):
     self.monitorPortas = MonitorPortas(parent=self)
     self.monitorPortas.portasMudaram.connect(self.aoMudarPortas)
     self.monitorPortas.iniciar()
+
+    # O painel ADS-B so e redesenhado se chegou algo novo, no maximo 2x por segundo
+    self.timerAdsb = QTimer(self)
+    self.timerAdsb.timeout.connect(self.atualizarPainelAdsb)
+    self.timerAdsb.start(500)
 
     self.settings = QSettings('AbaTrack', 'AbaTrack')
     self.criarMenuTelas()
@@ -444,12 +477,23 @@ class MainWindow(QMainWindow):
     self.telaImagens.aoReceberDeteccao(pares)
     self.mostrarToast('Aeronave clandestina detectada')
 
+  def salvarPosicaoMissao(self, icao, lat, lon, alt, gs=-1.0):
+    """Guarda no banco a posicao que chegou como "missão: icao, lat, lon, alt"."""
+    if self.bancoAdsb is None:
+      self.bancoAdsb = BancoAdsb(diretorioAdsb())
+    registrarPosicaoMissao_useCase(
+        icao, lat, lon, alt, self.repositorio, self.bancoAdsb,
+        velocidadeKt=None if gs < 0 else gs,
+    )
+
   def aoReceberMensagemOrange(self, msg):
     if self.bancoAdsb is None:
       self.bancoAdsb = BancoAdsb(diretorioAdsb())
     resultado = registrarMensagemOrange_useCase(
         msg, self.repositorio, self.bancoAdsb
     )
+    if msg.tipo == 'AC':
+      self._adsbSujo = True
     if msg.tipo == 'VEREDITO':
       self.telaImagens.aoReceberDeteccao(resultado['pares'])
       self.mostrarToast('Aeronave clandestina detectada')
@@ -511,6 +555,36 @@ class MainWindow(QMainWindow):
           f' dBm<br><b>Tamanho:</b> {tamanho_pacote} bytes'
       )
 
+  def textoCabecalhoAdsb(self):
+    aeronaves = self.repositorio.aeronaves
+    cabecalho = '<br><div style="text-align: center;"><b>ADS-B</b></div><br>'
+    if not aeronaves:
+      return cabecalho + 'Aguardando dados do Orange Pi'
+    return (
+        cabecalho
+        + f'Aeronaves: {len(aeronaves)}<br>'
+        + f'Registros: {len(self.repositorio.registrosAdsb)}'
+    )
+
+  def textoListaAdsb(self):
+    linhas = []
+    for r in sorted(self.repositorio.aeronaves.values(), key=lambda r: r.icao24):
+      rumo = ''
+      if r.rumo is not None:
+        rumo = f' {"~" if r.rumoEstimado else ""}{r.rumo:.0f}°'
+      linhas.append(
+          f'<b>{r.icao24}</b> {r.altitudeFt} ft {r.velocidadeKt} kt{rumo}<br>'
+          f'&nbsp;&nbsp;{r.latitude:.4f}, {r.longitude:.4f}'
+      )
+    return '<br>'.join(linhas)
+
+  def atualizarPainelAdsb(self):
+    if not self._adsbSujo:
+      return
+    self._adsbSujo = False
+    self.labelAdsb.setText(self.textoCabecalhoAdsb())
+    self.labelListaAdsb.setText(self.textoListaAdsb())
+
   def atualizarLabelDadosGPS(self, pacoteDadosGPS):
     latitude = self.repositorio.latitude[-1]
     longitude = self.repositorio.longitude[-1]
@@ -558,6 +632,7 @@ class MainWindow(QMainWindow):
       self.thread.deteccaoRecebida.connect(self.aoReceberDeteccao)
       self.thread.mensagemOrange.connect(self.aoReceberMensagemOrange)
       self.thread.pacoteAviao.connect(self.atualizarAviaoNoMapa)
+      self.thread.posicaoMissao.connect(self.salvarPosicaoMissao)
 
       self.thread.start()
 
@@ -645,22 +720,28 @@ class MainWindow(QMainWindow):
       self.mostrarAviso('Erro ao salvar dados', str(e))
 
   def salvarAdsbCSV(self):
-    """CSV com todas as posições de aeronaves recebidas do Orange Pi (ADS-B)."""
+    """CSV com as posicoes de aeronaves recebidas do Orange Pi (ADS-B)."""
     try:
       registros = self.repositorio.registrosAdsb
-      if not registros:
+      posicoes = self.repositorio.posicoesMissao
+      if not registros and not posicoes:
         self.mostrarAviso('Sem dados', 'Nenhum dado de ADS-B recebido ainda.')
         return
       pasta = diretorioAdsb()
       os.makedirs(pasta, exist_ok=True)
-      nome = f"payload_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
-      caminho = os.path.join(pasta, nome)
-      with open(caminho, 'w', newline='', encoding='utf-8') as arquivo:
-        csv.writer(arquivo).writerows(linhasCsvAdsb(registros))
-      self.mostrarAviso(
-          'Sucesso',
-          f'{len(registros)} registros de ADS-B salvos em: {caminho}',
-      )
+      hora = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+      salvos = []
+      if registros:
+        caminho = os.path.join(pasta, f'payload_{hora}.csv')
+        with open(caminho, 'w', newline='', encoding='utf-8') as arquivo:
+          csv.writer(arquivo).writerows(linhasCsvAdsb(registros))
+        salvos.append(f'{len(registros)} registros em: {caminho}')
+      if posicoes:
+        caminho = os.path.join(pasta, f'payload_missao_{hora}.csv')
+        with open(caminho, 'w', newline='', encoding='utf-8') as arquivo:
+          csv.writer(arquivo).writerows(linhasCsvPosicoesMissao(posicoes))
+        salvos.append(f'{len(posicoes)} posições (missão:) em: {caminho}')
+      self.mostrarAviso('Sucesso', 'Salvo:' + chr(10) + chr(10).join(salvos))
     except Exception as e:
       self.mostrarAviso('Erro ao salvar ADS-B', str(e))
 
@@ -839,7 +920,7 @@ class MainWindow(QMainWindow):
     QMessageBox.about(
         self,
         'Sobre',
-        'AbaTrack 1.1.0v\nDesenvolvido pelos membros da UERJ Sats: Thiago'
+        'AbaTrack 1.5.1v\nDesenvolvido pelos membros da UERJ Sats: Thiago'
         ' Martins e Kataryne Cunha.\nQt: 5.15.2 PyQt5: 5.15.11',
     )
 
@@ -1003,10 +1084,7 @@ class MainWindow(QMainWindow):
     if submenuSelecionarMapa is not None:
       submenuSelecionarMapa.clear()
       mapas_disponiveis = [
-          ('Mapa LASC', 'mapa4.html'),
-          ('Mapa CubeDesign INPE', 'mapa3.html'),
-          ('Mapa IREC', 'mapa2.html'),
-          ('Mapa Teste de Vôo', 'mapa.html')
+          ('Mapa CubeDesign 2026', 'mapa.html')
       ]
       acaoGroupMapa = QActionGroup(self)
       for nome, arquivo in mapas_disponiveis:
@@ -1022,7 +1100,6 @@ class MainWindow(QMainWindow):
     if submenuSelecionarServidor is not None:
       submenuSelecionarServidor.clear()
       servidores_disponiveis = [
-          ('LASC 26', 'http://www.missao.atlas.com'),
           ('CubeDesign 2026', 'http://www.missao.maverick.com')
       ]
       acaoGroupServidor = QActionGroup(self)
