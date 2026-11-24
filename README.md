@@ -95,6 +95,13 @@ As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são c
 <img width="1280" height="720" alt="Tela de imagens recebidas" src="https://github.com/user-attachments/assets/ebd6c9be-00a8-4f8c-b22b-b6d6a4ba2069" />
 
 
+### Tela 6: Bateria
+- Quatro gráficos: temperatura da bateria, tensão, corrente e temperatura do satélite
+- A temperatura da bateria é a média dos dois sensores. Se um sensor manda `-127` (falha), ele é descartado e vale só o outro. Se os dois falham, aquele pacote não entra no gráfico
+- Cartões embaixo, no mesmo estilo do GPS, com o último valor de cada gráfico e a potência (tensão × corrente, em W). O cartão da bateria mostra a média, a máxima e a mínima registradas e os valores dos dois sensores, e fica vermelho quando a média fica abaixo de 0 °C. O cartão da corrente mostra o valor atual, a máxima e a mínima
+- Uma linha em 0 °C no gráfico da bateria marca o limite
+- A tela pode ser escondida pelo menu **Telas**
+
 ## 📡 Comunicação Serial
 
 - Conexão e desconexão com Arduino via porta serial
@@ -108,6 +115,11 @@ As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são c
 
 
 ## 💾 Salvamento de Dados
+
+### Gravação contínua da telemetria
+- Cada pacote de telemetria é gravado num CSV **assim que chega** (e forçado para o disco), em `dados_salvos/telemetria/telemetria_AAAA-MM-DD_HH-MM-SS.csv`. Se o AbaTrack travar ou a serial cair, o que já chegou fica salvo. Um arquivo por execução
+- Colunas: hora de chegada no PC, os 19 campos do pacote e `temp_bateria_media` (média dos dois sensores da bateria, ignorando o que mandar `-127`)
+- As colunas estão descritas na seção **Dados Recebidos**, mais abaixo (o arquivo `ESQUEMA_telemetria.md`, na mesma pasta, traz a mesma descrição)
 
 ### Formatos de Exportação
 - **TXT** — Histórico completo de telemetria formatado
@@ -155,29 +167,35 @@ As métricas do edital (perda pelas lacunas do `seq` e latência de solo) são c
 
 ## 📡 Dados Recebidos
 
-| Posição | Dado                    | Unidade / Descrição       |
-|---------|-------------------------|---------------------------|
-| 0       | Tempo                   | s (segundos)              |
-| 1       | Temperatura             | °C                        |
-| 2       | Umidade                 | %                         |
-| 3       | Altitude                | m (metros)                |
-| 4       | Pressão                 | Pa (Pascal)               |
-| 5       | Latitude                | graus decimais            |
-| 6       | Longitude               | graus decimais            |
-| 7       | Número de Satélites     | quantidade                |
-| 8       | Roll (Giro X)           | graus                     |
-| 9       | Pitch (Giro Y)          | graus                     |
-| 10      | Yaw (Giro Z)            | graus                     |
-| 11      | Ângulo LDR              | graus                     |
-| 12      | Temperatura Bateria 1   | °C                        |
-| 13      | Temperatura Bateria 2   | °C                        |
-| 14      | Tensão                  | V                         |
-| 15      | Corrente                | A                         |
-| 16      | Número de Pacotes       | quantidade                |
-| 17      | RSSI                    | dBm (sinal do rádio)      |
-| 18      | Tamanho do Pacote       | bytes                     |
+| Posição | Dado                    | Unidade / Descrição       | Coluna no CSV          |
+|---------|-------------------------|---------------------------|------------------------|
+| 0       | Tempo                   | s (segundos)              | `tempo` |
+| 1       | Temperatura             | °C                        | `temperatura` |
+| 2       | Umidade                 | %                         | `umidade` |
+| 3       | Altitude                | m (metros)                | `altitude` |
+| 4       | Pressão                 | Pa (Pascal)               | `pressao` |
+| 5       | Latitude                | graus decimais            | `latitude` |
+| 6       | Longitude               | graus decimais            | `longitude` |
+| 7       | Número de Satélites     | quantidade                | `satelites` |
+| 8       | Roll (Giro X)           | graus                     | `roll` |
+| 9       | Pitch (Giro Y)          | graus                     | `pitch` |
+| 10      | Yaw (Giro Z)            | graus                     | `yaw` |
+| 11      | Ângulo LDR              | graus                     | `angulo_ldr` |
+| 12      | Temperatura Bateria 1   | °C                        | `temp_bateria1` |
+| 13      | Temperatura Bateria 2   | °C                        | `temp_bateria2` |
+| 14      | Tensão                  | V                         | `tensao` |
+| 15      | Corrente                | A                         | `corrente` |
+| 16      | Número de Pacotes       | quantidade                | `num_pacotes` |
+| 17      | RSSI                    | dBm (sinal do rádio)      | `rssi` |
+| 18      | Tamanho do Pacote       | bytes                     | `tamanho_pacote` |
 
 OBS: o pacote de dados tem **19 campos separados por `:`** e tem que estar com as informações nessa ordem (posição 0 a 18).
+
+### CSV da telemetria (`dados_salvos/telemetria/`)
+O arquivo gravado continuamente tem uma linha por pacote recebido, na ordem de chegada, e estas colunas:
+- `chegada_pc`: hora em que o PC recebeu o pacote (`AAAA-MM-DD HH:MM:SS.mmm`, hora local)
+- os 19 campos da tabela acima, com os nomes da última coluna
+- `temp_bateria_media`: média dos dois sensores da bateria, em °C. Se um sensor mandou `-127` (falha), vale só o outro. Fica vazia se os dois falharam. Os valores originais continuam em `temp_bateria1` e `temp_bateria2`
 
 ## ⚙️ Como Usar
 

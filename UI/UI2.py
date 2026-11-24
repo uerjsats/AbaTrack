@@ -18,6 +18,7 @@ import folium
 from integracao.adaptador_arduino import AdaptadorArduino
 from integracao.armazenamento_imagens import diretorioImagens, salvarImagemOriginal
 from integracao.banco_adsb import BancoAdsb, diretorioAdsb
+from integracao.log_telemetria import LogTelemetria
 from integracao.portas_seriais import MonitorPortas
 from integracao.salvar_graficos import salvarGrafico
 import numpy as np
@@ -52,6 +53,7 @@ from PyQt5.QtWidgets import (
 import pyqtgraph.opengl as gl
 from pyqtgraph.Qt import QtCore, QtGui
 from UI.graficosGenericos import GraficoDinamicoGenerico
+from UI.tela_bateria import TelaBateria
 from UI.tela_imagens import TelaImagens
 from UI.tela_serial import TelaSerial
 from UI.thread_main import ThreadPrincipal
@@ -169,6 +171,17 @@ class MainWindow(QMainWindow):
         lambda: self.stackedWidget.setCurrentIndex(4)
     )
     self.layoutBotoesNavegacao.addWidget(self.botaoTelaImagens)
+
+    self.botaoTelaBateria = QPushButton('', self)
+    self.botaoTelaBateria.setFixedSize(45, 25)
+    self.botaoTelaBateria.setToolTip('Bateria')
+    self.botaoTelaBateria.setIcon(
+        QIcon(os.path.join(base_path, 'imgs', 'icon_tela_bateria.png'))
+    )
+    self.botaoTelaBateria.clicked.connect(
+        lambda: self.stackedWidget.setCurrentIndex(5)
+    )
+    self.layoutBotoesNavegacao.addWidget(self.botaoTelaBateria)
 
     self.layoutPrincipal.addLayout(self.layoutBotoesNavegacao)
 
@@ -370,8 +383,12 @@ class MainWindow(QMainWindow):
     # ------------------- TELA 5 (Imagens recebidas) -------------------
     self.pastaImagens = diretorioImagens()
     self.bancoAdsb = None  # criado quando chegar o primeiro dado do Orange
+    self.logTelemetria = None  # criado quando chegar o primeiro pacote de telemetria
     self.telaImagens = TelaImagens(self.repositorio, self.pastaImagens)
     self.stackedWidget.addWidget(self.telaImagens)
+
+    self.telaBateria = TelaBateria(self.repositorio)
+    self.stackedWidget.addWidget(self.telaBateria)
 
     # Adiciona o QStackedWidget no layout principal da janela
     self.layoutPrincipal.addWidget(self.stackedWidget)
@@ -411,6 +428,7 @@ class MainWindow(QMainWindow):
         ('Visualização 3D', self.botaoTela3),
         ('Web', self.botaoTelaWeb),
         ('Imagens recebidas', self.botaoTelaImagens),
+        ('Bateria', self.botaoTelaBateria),
     ]
     try:
       salvas = self.settings.value('telasVisiveis', None)
@@ -419,6 +437,13 @@ class MainWindow(QMainWindow):
       visiveis = None
     if not visiveis:
       visiveis = set(range(len(self.telasDisponiveis)))
+    else:
+      # telas criadas depois da ultima vez que a escolha foi salva aparecem ligadas
+      try:
+        conhecidas = int(self.settings.value('telasConhecidas', 5))
+      except (TypeError, ValueError):
+        conhecidas = 5
+      visiveis |= set(range(conhecidas, len(self.telasDisponiveis)))
 
     menuTelas = QMenu('Telas', self.menuBar)
     # fica antes do último menu (Ajuda)
@@ -454,6 +479,7 @@ class MainWindow(QMainWindow):
         'telasVisiveis',
         [i for i, a in enumerate(self.acoesTelas) if a.isChecked()],
     )
+    self.settings.setValue('telasConhecidas', len(self.acoesTelas))
     self._garantirTelaVisivel()
 
   def _garantirTelaVisivel(self):
@@ -540,6 +566,13 @@ class MainWindow(QMainWindow):
 
   def atualizarLabelDadoBruto(self, ultimoPacoteDados):
     self.dadosRecebidos = True
+    # grava o pacote em disco na hora (CSV continuo); uma falha aqui nao pode travar a tela
+    try:
+      if self.logTelemetria is None:
+        self.logTelemetria = LogTelemetria()
+      self.logTelemetria.registrar(ultimoPacoteDados)
+    except Exception as e:
+      print(f'Erro ao gravar a telemetria: {e}')
     self.labelPacotesBrutos.setText(
         'Dados dos pacotes recebidos: '
         + ':'.join(map(str, ultimoPacoteDados))
@@ -618,6 +651,10 @@ class MainWindow(QMainWindow):
       self.thread.ultimosSubdadosTemperaturaTempo.connect(
           self.graficoDinamico.atualizarGrafico
       )
+      self.thread.ultimosSubdadosTemperaturaTempo.connect(
+          self.telaBateria.atualizarSatelite
+      )
+      self.thread.pacoteBateria.connect(self.telaBateria.atualizarBateria)
       self.thread.ultimosSubdadosPressTemp.connect(
           self.graficoPressaoTemp.atualizarGrafico
       )
@@ -1066,6 +1103,8 @@ class MainWindow(QMainWindow):
     self.monitorPortas.parar()
     if self.bancoAdsb is not None:
       self.bancoAdsb.fechar()
+    if self.logTelemetria is not None:
+      self.logTelemetria.fechar()
     if self.dadosRecebidos:
       self.salvarDados()
     event.accept()

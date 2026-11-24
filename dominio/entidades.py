@@ -60,6 +60,7 @@ class RepositorioTelemetria:
         self.anguloldr = []
         self.tempbateria1 = []
         self.tempbateria2 = []
+        self.tempbateriaMedia = []  # media dos dois sensores, sem o que mandou -127
         self.voltage = []
         self.current = []
         self.imagens = []

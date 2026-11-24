@@ -2,6 +2,7 @@
 from integracao.adaptador_arduino import AdaptadorArduino
 from aplicacao.use_cases import *
 from aplicacao.deteccao_aeronave import ehLinhaDeteccao, interpretarLinhaDeteccao
+from aplicacao.bateria import registrarMediaBateria_useCase
 from aplicacao.mensagens_orange import TIPOS_ORANGE, ehMensagemOrange, lerMensagemOrange
 from dominio.entidades import *
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -21,6 +22,8 @@ class ThreadPrincipal(QThread):
     pacoteUmidade = pyqtSignal(float)
     pacoteAviao = pyqtSignal(str, float, float, int, float)
     # icao, lat, lon, alt, velocidade_kmh
+    pacoteBateria = pyqtSignal(float, float, float, float)
+    # tempo, tensao (V), corrente (A), temperatura media da bateria (NaN se os 2 sensores falharam)
     posicaoMissao = pyqtSignal(str, float, float, int, float)
     # icao, lat, lon, alt_ft, gs_kt da linha "missão:" (-1 se a linha nao trouxe o gs)
     deteccaoRecebida = pyqtSignal(object)  # DeteccaoAeronave (formato antigo DET)
@@ -185,6 +188,13 @@ class ThreadPrincipal(QThread):
                         self.repositorio.anguloldr[-1]
                     )
                     self.pacoteUmidade.emit(self.repositorio.umidade[-1])
+                    mediaBateria = registrarMediaBateria_useCase(self.repositorio)
+                    self.pacoteBateria.emit(
+                        self.repositorio.tempo[-1],
+                        self.repositorio.voltage[-1],
+                        self.repositorio.current[-1],
+                        float('nan') if mediaBateria is None else mediaBateria
+                    )
 
                 # So dorme quando nao chegou nada: com linhas na fila (rajada do
                 # ADS-B) segue direto para a proxima.

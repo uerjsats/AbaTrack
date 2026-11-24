@@ -14,3 +14,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Dados gerados pelo AbaTrack durante os testes (fotos, banco do ADS-B, telemetria)
+dados_salvos/
